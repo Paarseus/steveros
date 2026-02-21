@@ -1,0 +1,19 @@
+# Colcon build artifacts (live in parent directory)
+build/
+install/
+log/
+
+# C++ build
+*.o
+*.so
+*.a
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Python
+__pycache__/
+*.pyc

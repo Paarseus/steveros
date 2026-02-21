@@ -1,0 +1,7 @@
+<library path="steveros_hardware">
+  <class name="steveros_hardware/SteveROSHardware"
+         type="steveros_hardware::SteveROSHardware"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>5-DOF Robstride arm over CAN bus (MIT mode impedance control)</description>
+  </class>
+</library>
