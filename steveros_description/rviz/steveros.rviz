@@ -17,7 +17,7 @@ Visualization Manager:
       Name: TF
       Value: true
   Global Options:
-    Fixed Frame: base_link
+    Fixed Frame: base
     Frame Rate: 30
   Views:
     Current:

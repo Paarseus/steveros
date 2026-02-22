@@ -1,4 +1,4 @@
-"""Launch SteveROS arm with ros2_control, controllers, and optional RViz."""
+"""Launch KBot 20-DOF humanoid with ros2_control, controllers, and optional RViz."""
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, RegisterEventHandler
@@ -50,17 +50,40 @@ def generate_launch_description():
         arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager"],
     )
 
-    arm_controller_spawner = Node(
+    right_arm_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["arm_controller", "--controller-manager", "/controller_manager"],
+        arguments=["right_arm_controller", "--controller-manager", "/controller_manager"],
     )
 
-    # Spawn arm_controller after joint_state_broadcaster is up
-    delay_arm_controller = RegisterEventHandler(
+    left_arm_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["left_arm_controller", "--controller-manager", "/controller_manager"],
+    )
+
+    right_leg_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["right_leg_controller", "--controller-manager", "/controller_manager"],
+    )
+
+    left_leg_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["left_leg_controller", "--controller-manager", "/controller_manager"],
+    )
+
+    # Spawn all limb controllers after joint_state_broadcaster is up
+    delay_controllers = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=joint_state_broadcaster_spawner,
-            on_exit=[arm_controller_spawner],
+            on_exit=[
+                right_arm_controller_spawner,
+                left_arm_controller_spawner,
+                right_leg_controller_spawner,
+                left_leg_controller_spawner,
+            ],
         )
     )
 
@@ -86,7 +109,7 @@ def generate_launch_description():
             control_node,
             robot_state_publisher,
             joint_state_broadcaster_spawner,
-            delay_arm_controller,
+            delay_controllers,
             rviz_node,
         ]
     )

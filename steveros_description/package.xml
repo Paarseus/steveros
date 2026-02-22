@@ -3,7 +3,7 @@
 <package format="3">
   <name>steveros_description</name>
   <version>0.1.0</version>
-  <description>URDF description for SteveROS 5-DOF arm</description>
+  <description>URDF description for KBot 20-DOF humanoid</description>
   <maintainer email="nemo@todo.todo">nemo</maintainer>
   <license>MIT</license>
 

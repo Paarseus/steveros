@@ -5,17 +5,74 @@ controller_manager:
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
 
-    arm_controller:
+    right_arm_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
-arm_controller:
+    left_arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+    right_leg_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+    left_leg_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+right_arm_controller:
   ros__parameters:
     joints:
-      - shoulder_pitch_joint
-      - shoulder_roll_joint
-      - elbow_joint
-      - wrist_pitch_joint
-      - wrist_roll_joint
+      - dof_right_shoulder_pitch_03
+      - dof_right_shoulder_roll_03
+      - dof_right_shoulder_yaw_02
+      - dof_right_elbow_02
+      - dof_right_wrist_00
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    open_loop_control: false
+    allow_integration_in_goal_trajectories: true
+
+left_arm_controller:
+  ros__parameters:
+    joints:
+      - dof_left_shoulder_pitch_03
+      - dof_left_shoulder_roll_03
+      - dof_left_shoulder_yaw_02
+      - dof_left_elbow_02
+      - dof_left_wrist_00
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    open_loop_control: false
+    allow_integration_in_goal_trajectories: true
+
+right_leg_controller:
+  ros__parameters:
+    joints:
+      - dof_right_hip_pitch_04
+      - dof_right_hip_roll_03
+      - dof_right_hip_yaw_03
+      - dof_right_knee_04
+      - dof_right_ankle_02
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    open_loop_control: false
+    allow_integration_in_goal_trajectories: true
+
+left_leg_controller:
+  ros__parameters:
+    joints:
+      - dof_left_hip_pitch_04
+      - dof_left_hip_roll_03
+      - dof_left_hip_yaw_03
+      - dof_left_knee_04
+      - dof_left_ankle_02
     command_interfaces:
       - position
     state_interfaces:

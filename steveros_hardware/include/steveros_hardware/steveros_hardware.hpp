@@ -24,7 +24,7 @@ struct JointConfig
   double zero_offset_rad = 0.0;  // zero_offset_deg converted to radians
 };
 
-/// Hardware interface for 5-DOF Robstride arm over CAN bus.
+/// Hardware interface for KBot 20-DOF Robstride humanoid over CAN bus.
 ///
 /// Implements the ros2_control SystemInterface lifecycle.
 /// Currently uses placeholder read/write (simulated position tracking).
