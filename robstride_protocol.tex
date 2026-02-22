@@ -1,0 +1,89 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\geometry{margin=1in}
+
+\title{\textbf{Technical Integration Guide: RobStride CAN Communication and Control for 20-DOF Humanoid}}
+\author{SteveROS Project Team}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+This report outlines the professional implementation and safety standards for the RobStride (CyberGear-compatible) motor series in a 20-DOF humanoid configuration. The protocol utilizes \textbf{CAN 2.0B} with a 1 Mbps baud rate and 29-bit extended frames.
+
+\section{Hardware and Electrical Foundation}
+To ensure deterministic control and prevent electrical failure, the physical layer must follow standard bus topology practices.
+
+\begin{itemize}
+    \item \textbf{Dual CAN Bus Topology:} Split the 20 motors into two independent buses (e.g., \texttt{can0} for Legs, \texttt{can1} for Arms/Torso). 20 motors at 500Hz will saturate a single 1Mbps bus.
+    \item \textbf{Termination:} Each bus must have exactly two $120\Omega$ resistors at the physical ends of the chain.
+    \item \textbf{Physical Emergency Stop (E-Stop):} A physical, red latching button must be placed on the High-Voltage (24V/48V) line. Logic power (PC/Sensors) must remain powered for logging and telemetry during an E-Stop.
+\end{itemize}
+
+\section{Configuration and Identification}
+Each motor must be configured individually using the \texttt{robstride} CLI or official configuration tool before integration.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Configuration Step} & \textbf{Action} & \textbf{Robotics Standard} \\ \midrule
+Unique ID Mapping & Assign IDs by limb (e.g., 11-15 for L-Leg) & Logical Addressing \\
+Hardware Zeroing & Calibrate T-Pose and save to NVM (\texttt{0x7018}) & Reference Zeroing \\
+Watchdog Timeout & Set \texttt{comm\_timeout} to 50ms (\texttt{0x701A}) & Fail-Safe Behavior \\
+Communication Mode & Set to MIT Mode (Mode 0) & Impedance Control \\ \bottomrule
+\end{tabular}
+\caption{One-time Motor Configuration Checklist}
+\end{table}
+
+\section{Software Control Architecture}
+The ROS 2 \texttt{hardware\_interface} should utilize the \texttt{SocketCAN} driver for real-time performance.
+
+\subsection{The Control Law (MIT Mode)}
+Control is achieved by sending five parameters: Position ($q_{des}$), Velocity ($\dot{q}_{des}$), $K_p$, $K_d$, and Feed-forward Torque ($\tau_{ff}$).
+\begin{equation}
+\tau = K_p(q_{des} - q) + K_d(\dot{q}_{des} - \dot{q}) + \tau_{ff}
+\end{equation}
+
+\subsection{Mapping and Scaling}
+Raw 16-bit values must be mapped to physical units using standard conversion:
+\begin{itemize}
+    \item $P_{des}: [-12.5, 12.5]$ rad
+    \item $V_{des}: [-45.0, 45.0]$ rad/s
+    \item $T_{ff}: [-12.0, 12.0]$ Nm (for RS04/RS06)
+\end{itemize}
+
+\section{Safety and Fault Mitigation Layer}
+These are the "Must-Do" software implementations inside the \texttt{write()} and \texttt{read()} loops.
+
+\begin{enumerate}
+    \item \textbf{Torque Saturation (Clamping):}
+    \begin{lstlisting}[language=C++, frame=single, basicstyle=\small\ttfamily]
+    double safe_torque = std::clamp(tau_cmd, -4.0, 4.0); // RS04 Rated
+    \end{lstlisting}
+    \item \textbf{Soft Position Limits:} Monitor $q_{act}$. If $q_{act}$ is within 5 degrees of the mechanical limit, decrease $K_p$ and increase $K_d$ to dampen the impact.
+    \item \textbf{Thermal Throttling:} If the feedback temperature exceeds $60^\circ$C, linearly reduce the allowed Max Torque. If temperature exceeds $75^\circ$C, disable the motor.
+    \item \textbf{Safe Activation (Ramping):} Upon entering the \texttt{ACTIVE} state, the $K_p$ gain must be ramped from 0.0 to operational levels over 1.5 seconds to prevent sudden "jumps."
+\end{enumerate}
+
+\section{Professional Bring-up Checklist}
+Before full-speed operation, verify the following:
+\begin{itemize}
+    \item[$\square$] \textbf{Passive Damping:} Verify $K_d = 0.5, K_p = 0$ results in a limb that is easy to move by hand.
+    \item[$\square$] \textbf{Direction Check:} Ensure motor signs match the URDF conventions (e.g., knee flexion is positive).
+    \item[$\square$] \textbf{Gravity Test:} Slowly increase $K_p$ until the robot holds its posture against gravity.
+    \item[$\square$] \textbf{E-Stop Verification:} Ensure the Physical E-Stop removes all joint torque instantly.
+\end{itemize}
+
+\end{document}
