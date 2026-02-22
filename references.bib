@@ -1,0 +1,441 @@
+% =============================================================================
+% Humanoid Robot ROS2 Open-Source Projects — Reference Bibliography
+% Generated: 2026-02-22
+% Context: SteveROS KBot 20-DOF Humanoid Workspace
+% =============================================================================
+
+% ---------------------------------------------------------------------------
+% TIER 1: Production-Grade / Industry-Backed Humanoid Projects
+% ---------------------------------------------------------------------------
+
+@misc{roboto_origin,
+  author       = {{RoboParty}},
+  title        = {{ROBOTO ORIGIN}: Fully Open-Source {DIY} Humanoid Robot},
+  year         = {2026},
+  howpublished = {\url{https://github.com/Roboparty/roboto_origin}},
+  note         = {Full-stack open-source bipedal humanoid (1.25m, 34kg, 3m/s).
+                  ROS2 Humble deployment framework, IsaacLab RL training,
+                  AMP anthropomorphic gait algorithm. Hardware + software + training
+                  all open-sourced. 1200+ GitHub stars. Xiaomi-backed.},
+}
+
+@misc{reachy2_core,
+  author       = {{Pollen Robotics}},
+  title        = {Reachy 2 Core: {ROS2} Humanoid Workspace},
+  year         = {2025},
+  howpublished = {\url{https://github.com/pollen-robotics/reachy2_core}},
+  note         = {Multi-package ROS2 workspace for Reachy 2 humanoid.
+                  Packages: reachy\_bringup, reachy\_config, reachy\_controllers,
+                  reachy\_description, reachy\_fake. Rust FFI hardware layer,
+                  ros2\_control SystemInterface, Dynamixel + EtherCAT dual-bus.
+                  500Hz controller rate. Docker one-line setup.},
+}
+
+@misc{talos_robot,
+  author       = {{PAL Robotics}},
+  title        = {{TALOS} Robot: {ROS2} Packages for the {TALOS} Humanoid},
+  year         = {2025},
+  howpublished = {\url{https://github.com/pal-robotics/talos_robot}},
+  note         = {32-DOF fully torque-controllable humanoid (1.75m, 95kg).
+                  EtherCAT bus, ros2\_control SystemInterface, MoveIt2 integration.
+                  Humble-devel branch. Single System block for all joints.
+                  Async hardware thread at priority 70. Differential transmissions
+                  for wrist and torso. Industry gold standard.},
+}
+
+@misc{talos_moveit_config,
+  author       = {{PAL Robotics}},
+  title        = {{TALOS} {MoveIt2} Configuration},
+  year         = {2025},
+  howpublished = {\url{https://github.com/pal-robotics/talos_moveit_config}},
+  note         = {MoveIt2 planning groups for TALOS: arms, legs, torso, head.
+                  KDL kinematics, OMPL planning pipelines, Pilz cartesian limits.
+                  Humble-devel branch.},
+}
+
+@misc{kscalelabs_kbot,
+  author       = {{K-Scale Labs}},
+  title        = {{KBot}: The {K-Scale} Robot},
+  year         = {2025},
+  howpublished = {\url{https://github.com/kscalelabs/kbot}},
+  note         = {Open-source humanoid (1.4m, 34kg). Three submodules:
+                  kos-kbot (CAN bus control), ksim-kbot (simulation),
+                  kbot-inference (ML). Custom Rust-based K-OS stack, NOT ROS2.
+                  Hardware: CERN-OHL-S, Software: GPL v3. 330 GitHub stars.},
+}
+
+% ---------------------------------------------------------------------------
+% TIER 2: Significant Open-Source Frameworks and Platforms
+% ---------------------------------------------------------------------------
+
+@misc{unitree_ros2,
+  author       = {{Unitree Robotics}},
+  title        = {Unitree {ROS2}: {SDK2} for {Go2}, {B2}, {H1}, and {G1}},
+  year         = {2025},
+  howpublished = {\url{https://github.com/unitreerobotics/unitree_ros2}},
+  note         = {Official ROS2 SDK for Unitree robots. CycloneDDS-based
+                  communication. Supports H1 and G1 humanoids. 584 GitHub stars.
+                  Does NOT use ros2\_control framework.},
+}
+
+@misc{unitree_ros,
+  author       = {{Unitree Robotics}},
+  title        = {Unitree {ROS}: Robot Descriptions and Simulation},
+  year         = {2025},
+  howpublished = {\url{https://github.com/unitreerobotics/unitree_ros}},
+  note         = {URDF/MJCF descriptions for H1, H1\_2, G1 humanoids plus
+                  quadrupeds. Includes Gazebo simulation. 1200 GitHub stars.
+                  Primarily ROS1 but URDF files reusable in ROS2.},
+}
+
+@misc{g1pilot,
+  author       = {{HuCeBot/INRIA}},
+  title        = {{G1Pilot}: {ROS2} Package for {Unitree G1} Humanoid},
+  year         = {2025},
+  howpublished = {\url{https://github.com/hucebot/g1pilot}},
+  note         = {ROS2 Humble package for Unitree G1. Upper body control
+                  while delegating balance to Unitree's native controller.
+                  Joystick teleop, IK, navigation, Docker-first workflow.
+                  151 GitHub stars.},
+}
+
+@misc{xcub_moveit2,
+  author       = {{iCub Tech (IIT)}},
+  title        = {{xcub-moveit2}: {MoveIt2} for {iCub} and {ergoCub} Humanoids},
+  year         = {2025},
+  howpublished = {\url{https://github.com/icub-tech-iit/xcub-moveit2}},
+  note         = {ros2\_control + MoveIt2 integration for iCub/ergoCub.
+                  Planning groups for head, arms, torso, legs.
+                  FollowJointTrajectory controllers. YARP bridge.
+                  Best reference for MoveIt2 on a multi-DOF humanoid.},
+}
+
+@misc{icub_models,
+  author       = {{Robotology (IIT)}},
+  title        = {{iCub} Models: {URDF/SDF} for {iCub} Humanoid Variants},
+  year         = {2025},
+  howpublished = {\url{https://github.com/robotology/icub-models}},
+  note         = {Official iCub URDF/SDF models. Multiple site-specific variants.
+                  CC-BY-SA-4.0 license. 47 GitHub stars.},
+}
+
+@misc{bit_bots_humanoid_ros2,
+  author       = {{Hamburg Bit-Bots}},
+  title        = {Humanoid Robots {ROS2}: Multi-Robot Collection},
+  year         = {2022},
+  howpublished = {\url{https://github.com/bit-bots/humanoid_robots_ros2}},
+  note         = {ROS2 packages for 9+ humanoid robots (NAO, OP3, Wolfgang, etc.)
+                  with URDF + MoveIt configs + Webots PROTO files.
+                  Cross-platform algorithm benchmarking. RoboCup team.},
+}
+
+@misc{fourier_grx_models,
+  author       = {{Fourier Intelligence (FFTAI)}},
+  title        = {{GRx} Models: {URDF} for {GR1/GR2} Humanoids},
+  year         = {2025},
+  howpublished = {\url{https://github.com/FFTAI/Wiki-GRx-Models}},
+  note         = {URDF files for Fourier GR1/GR2 humanoid robots.
+                  Multiple hand options. MJCF conversion tools.
+                  Related repos: Wiki-GRx-Deploy, Wiki-GRx-Webots, teleoperation.},
+}
+
+@misc{open_x_humanoid,
+  author       = {{Open-X-Humanoid}},
+  title        = {{TienKung-Lab}: {RL}-Based Locomotion for Full-Sized Humanoids},
+  year         = {2025},
+  howpublished = {\url{https://github.com/Open-X-Humanoid/TienKung-Lab}},
+  note         = {RL-based locomotion control for TienKung humanoid.
+                  AMP-style + periodic gait rewards. ROS2/MQTT/TCP-IP support.
+                  586 GitHub stars. Beijing Innovation Center.
+                  Related: TienKung\_ROS, TienKung\_URDF.},
+}
+
+% ---------------------------------------------------------------------------
+% TIER 3: Research, Education, and Community Projects
+% ---------------------------------------------------------------------------
+
+@misc{berkeley_humanoid_lite,
+  author       = {{HybridRobotics (UC Berkeley)}},
+  title        = {{Berkeley Humanoid Lite}: Open-Source Humanoid Platform},
+  year         = {2025},
+  howpublished = {\url{https://github.com/HybridRobotics/Berkeley-Humanoid-Lite}},
+  note         = {Sub-\$5000 open-source humanoid. URDF/MJCF/USD descriptions.
+                  IsaacLab training + real robot deployment. 1200 GitHub stars.
+                  MIT license (code), CC BY-SA 4.0 (assets).},
+}
+
+@misc{berkeley_humanoid_description,
+  author       = {{HybridRobotics (UC Berkeley)}},
+  title        = {{Berkeley Humanoid} Description: {URDF} Robot Model},
+  year         = {2024},
+  howpublished = {\url{https://github.com/HybridRobotics/berkeley_humanoid_description}},
+  note         = {Clean minimal ROS2 description package. URDF + meshes + RViz launch.
+                  BSD-3-Clause license. 47 GitHub stars.},
+}
+
+@misc{rl_sar,
+  author       = {Ziqi Fan},
+  title        = {{rl\_sar}: Simulation and Real Deployment of Robot {RL} Algorithms},
+  year         = {2025},
+  howpublished = {\url{https://github.com/fan-ziqi/rl_sar}},
+  note         = {RL sim2real framework for quadruped, wheeled, and humanoid robots.
+                  Supports ROS1 + ROS2 (Humble/Foxy). Unitree G1 humanoid support.
+                  PyTorch JIT and ONNX inference. 1100 GitHub stars.},
+}
+
+@misc{humanoid_gym,
+  author       = {{RobotEra}},
+  title        = {{Humanoid-Gym}: {RL} Framework for Humanoid Locomotion},
+  year         = {2024},
+  howpublished = {\url{https://github.com/roboterax/humanoid-gym}},
+  note         = {Isaac Gym-based RL training for humanoid locomotion.
+                  Zero-shot sim2real on XBot-S (1.2m) and XBot-L (1.65m).
+                  Sim-to-sim verification (Isaac Gym to MuJoCo).},
+}
+
+@misc{legged_control,
+  author       = {Qiayuan Liao},
+  title        = {{legged\_control}: {NMPC}, {WBC}, State Estimation for Legged Robots},
+  year         = {2024},
+  howpublished = {\url{https://github.com/qiayuanl/legged_control}},
+  note         = {Nonlinear MPC + Whole-Body Control + state estimation framework.
+                  Based on OCS2 and ros-controls. Sim2real pipeline.
+                  Best open-source MPC framework for legged locomotion.},
+}
+
+@misc{ocs2,
+  author       = {{Robotic Systems Lab (ETH Zurich)}},
+  title        = {{OCS2}: Optimal Control for Switched Systems},
+  year         = {2024},
+  howpublished = {\url{https://github.com/leggedrobotics/ocs2}},
+  note         = {Optimal control toolbox with Pinocchio integration.
+                  URDF model helpers, centroidal dynamics, self-collision.
+                  ROS2 branch available. Foundation for legged\_control.},
+}
+
+@misc{bipedal_locomotion_framework,
+  author       = {{AMI Lab (IIT)}},
+  title        = {Bipedal Locomotion Framework},
+  year         = {2025},
+  howpublished = {\url{https://github.com/ami-iit/bipedal-locomotion-framework}},
+  note         = {C++ libraries for bipedal locomotion on humanoid robots.
+                  Used with iCub. Python bindings. Eigen3 + iDynTree.
+                  Research-grade from Italian Institute of Technology.},
+}
+
+@misc{hector_simulation,
+  author       = {{DRCL (USC)}},
+  title        = {{HECTOR} Simulation: Humanoid for Enhanced Control and Research},
+  year         = {2024},
+  howpublished = {\url{https://github.com/DRCL-USC/Hector_Simulation}},
+  note         = {Child-sized humanoid (0.85m) from USC. Force-and-moment MPC.
+                  ROS + Gazebo + MATLAB simulation. Dynamic walking at 0.6 m/s.},
+}
+
+@misc{humanoid_control_mpc,
+  author       = {Xuejl},
+  title        = {{humanoid-control}: Bipedal Walking with {NMPC} and {WBC}},
+  year         = {2024},
+  howpublished = {\url{https://github.com/pocketxjl/humanoid-control}},
+  note         = {Humanoid bipedal walking using NMPC + Whole-Body Control.
+                  MuJoCo simulation.},
+}
+
+@misc{robotis_op3,
+  author       = {{ROBOTIS}},
+  title        = {{ROBOTIS-OP3}: {ROS} Packages for {OP3} Humanoid},
+  year         = {2018},
+  howpublished = {\url{https://github.com/ROBOTIS-GIT/ROBOTIS-OP3}},
+  note         = {Classic small humanoid platform. XM-430 Dynamixel servos.
+                  Walking, vision, motion modules. 151 GitHub stars.
+                  Primarily ROS1 (Kinetic/Melodic), minimal ROS2 migration.},
+}
+
+@misc{robotis_humanoid_navigation,
+  author       = {{ROBOTIS}},
+  title        = {Humanoid Navigation: Footstep Planning and Localization},
+  year         = {2018},
+  howpublished = {\url{https://github.com/ROBOTIS-GIT/humanoid_navigation}},
+  note         = {ROS metapackage: footstep\_planner, gridmap\_2d,
+                  humanoid\_localization, humanoid\_planner\_2d. 61 GitHub stars.},
+}
+
+@misc{inmoov_ros2,
+  author       = {Alfonso Puig},
+  title        = {{Inmoov\_ROS2}: {ROS2} Control System for {InMoov} Humanoid},
+  year         = {2025},
+  howpublished = {\url{https://github.com/aalonsopuig/Inmoov_ROS2}},
+  note         = {ROS2 Humble. Vision, voice, distributed servo control.
+                  Based on open-source 3D-printed InMoov platform.
+                  Master's thesis project.},
+}
+
+@misc{ros2_walking_pattern_generator,
+  author       = {{Open-RDC (Chiba Institute of Technology)}},
+  title        = {{ROS2} Walking Pattern Generator for Humanoid Robots},
+  year         = {2025},
+  howpublished = {\url{https://github.com/open-rdc/ROS2_Walking_Pattern_Generator}},
+  note         = {ROS2 Jazzy + Webots. 14 packages: walking pattern generator,
+                  stabilization controller, footstep planner, kinematics.
+                  Compatible with ROBOTIS OP2. 57 GitHub stars.},
+}
+
+@misc{chinaheyu_humanoid,
+  author       = {chinaheyu},
+  title        = {Humanoid Robot {ROS2} Package},
+  year         = {2024},
+  howpublished = {\url{https://github.com/chinaheyu/humanoid}},
+  note         = {Modular ROS2 humanoid: humanoid\_interface (messages),
+                  humanoid\_base (head/leg driver), humanoid\_arm (arm driver),
+                  humanoid\_chat (LLM), humanoid\_web (REST API). Docker support.},
+}
+
+@misc{valkyrie_ihmc,
+  author       = {{IHMC Robotics}},
+  title        = {{Valkyrie}: {IHMC} Controller for {NASA} Humanoid},
+  year         = {2023},
+  howpublished = {\url{https://github.com/ihmcrobotics/valkyrie}},
+  note         = {IHMC controller and simulation for NASA's Valkyrie humanoid.
+                  ROS2 for sensor data and command communication.},
+}
+
+@misc{digit_ros2,
+  author       = {Grant Gibson},
+  title        = {{digit\_ros2}: {ROS2} Workspace for {Agility Digit} Humanoid},
+  year         = {2024},
+  howpublished = {\url{https://github.com/grantgib/digit_ros2}},
+  note         = {ROS2 bridge for Agility Robotics Digit via JSON API.},
+}
+
+% ---------------------------------------------------------------------------
+% TIER 4: Supporting Frameworks, Tools, and Simulation
+% ---------------------------------------------------------------------------
+
+@misc{ros2_control,
+  author       = {{ros-controls}},
+  title        = {{ros2\_control}: Generic Robot Control Framework for {ROS2}},
+  year         = {2025},
+  howpublished = {\url{https://github.com/ros-controls/ros2_control}},
+  note         = {The canonical ros2\_control framework. SystemInterface,
+                  ActuatorInterface, SensorInterface. Async hardware support.
+                  Transmission interface for humanoid hands.
+                  814 GitHub stars, 148 contributors.},
+}
+
+@misc{ros2_control_demos,
+  author       = {{ros-controls}},
+  title        = {{ros2\_control} Demos: Example Packages},
+  year         = {2025},
+  howpublished = {\url{https://github.com/ros-controls/ros2_control_demos}},
+  note         = {Official examples for ros2\_control and ros2\_controllers.
+                  Bringup + description pattern per example.
+                  Reference for hardware interface plugin structure.},
+}
+
+@misc{mujoco_ros2_control,
+  author       = {{ros-controls}},
+  title        = {{mujoco\_ros2\_control}: {MuJoCo} Integration with {ros2\_control}},
+  year         = {2025},
+  howpublished = {\url{https://github.com/ros-controls/mujoco_ros2_control}},
+  note         = {ros2\_control system interface for MuJoCo simulator.
+                  Position, velocity, effort control. FTS and IMU sensors.
+                  Tested with ROS2 Jazzy + MuJoCo 3.4.0. JOSS published.},
+}
+
+@misc{ros_odrive,
+  author       = {{ODrive Robotics}},
+  title        = {{ros\_odrive}: {ROS2} {ros2\_control} Driver for {ODrive}},
+  year         = {2025},
+  howpublished = {\url{https://github.com/odriverobotics/ros_odrive}},
+  note         = {ros2\_control SystemInterface over SocketCAN for ODrive motors.
+                  Non-blocking CAN drain pattern in read(). Clean per-axis
+                  abstraction. Reference for CAN-based hardware interfaces.},
+}
+
+@misc{fiveages_robot_descriptions,
+  author       = {{fiveages-sim}},
+  title        = {Robot Descriptions: {ROS2} {URDF} Packages for 30+ Robots},
+  year         = {2025},
+  howpublished = {\url{https://github.com/fiveages-sim/robot_descriptions}},
+  note         = {URDF packages for Unitree G1, Agibot, Booster T1, EngineAI,
+                  RobotEra XBot, DexForce W1, wheel-based humanoids.
+                  Blender-repainted meshes. 45 GitHub stars.},
+}
+
+@misc{fiveages_arms_ros2_control,
+  author       = {{fiveages-sim}},
+  title        = {{arms\_ros2\_control}: {ROS2}-Control for Humanoid Arms},
+  year         = {2025},
+  howpublished = {\url{https://github.com/fiveages-sim/arms_ros2_control}},
+  note         = {ros2\_control for single arm, dual arm, wheel-based humanoid.
+                  OCS2 MPC trajectory tracking. Multi-backend hardware abstraction
+                  (Gazebo, Isaac Sim, real). Humble and Jazzy. 37 GitHub stars.},
+}
+
+@misc{nvidia_isaac_lab,
+  author       = {{NVIDIA}},
+  title        = {{Isaac Lab}: Open-Source Modular Framework for Robot Learning},
+  year         = {2025},
+  howpublished = {\url{https://developer.nvidia.com/isaac/lab}},
+  note         = {GPU-accelerated simulation for robot learning.
+                  Pre-trained H1 humanoid locomotion policies.
+                  ROS2 bridge for policy deployment. IsaacSim integration.},
+}
+
+% ---------------------------------------------------------------------------
+% TIER 5: Curated Lists and Learning Resources
+% ---------------------------------------------------------------------------
+
+@misc{awesome_humanoid_learning,
+  author       = {Jony Zhang},
+  title        = {Awesome Humanoid Learning: Curated Resource List},
+  year         = {2025},
+  howpublished = {\url{https://github.com/jonyzhang2023/awesome-humanoid-learning}},
+  note         = {Comprehensive list of humanoid robot learning resources.
+                  Includes bipedal locomotion, manipulation, whole-body control.},
+}
+
+@misc{awesome_humanoid_robot_learning,
+  author       = {Yanjie Ze},
+  title        = {Awesome Humanoid Robot Learning: Paper List},
+  year         = {2025},
+  howpublished = {\url{https://github.com/YanjieZe/awesome-humanoid-robot-learning}},
+  note         = {Academic papers organized by task. Preference for papers
+                  with real robot experiments.},
+}
+
+@misc{awesome_ros2,
+  author       = {Florian Kromer},
+  title        = {Awesome {ROS2}: Curated List of {ROS2} Resources},
+  year         = {2025},
+  howpublished = {\url{https://github.com/fkromer/awesome-ros2}},
+  note         = {General ROS2 resources: packages, tools, papers, companies.},
+}
+
+@misc{naoqi_driver2,
+  author       = {{ros-naoqi}},
+  title        = {{naoqi\_driver2}: {ROS2} Bridge for {NAO} and {Pepper}},
+  year         = {2025},
+  howpublished = {\url{https://github.com/ros-naoqi/naoqi_driver2}},
+  note         = {ROS2 Humble + Iron. C++ bridge to NAOqi middleware.
+                  Speech, joint control, audio, diagnostics. 962 commits.},
+}
+
+@misc{poppy_humanoid,
+  author       = {{Poppy Project}},
+  title        = {{Poppy Humanoid}: Open-Source 3D Printed Humanoid Robot},
+  year         = {2020},
+  howpublished = {\url{https://github.com/poppy-project/poppy-humanoid}},
+  note         = {25-DOF 3D-printed humanoid (85cm, 3.5kg). Education/research.
+                  ROS1 Noetic only. No ROS2 support. URDF available.},
+}
+
+@misc{webots_wrestling_ros2,
+  author       = {{Cyberbotics}},
+  title        = {Humanoid Robot Wrestling Competition ({ROS2})},
+  year         = {2024},
+  howpublished = {\url{https://github.com/cyberbotics/wrestling}},
+  note         = {NAO robot wrestling in Webots simulator. ROS2 controller examples.
+                  wrestling-alice-ros-2 (minimalist) and wrestling-bob-ros-2
+                  (motion library). 37 GitHub stars.},
+}
