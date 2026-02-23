@@ -1,0 +1,363 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Page setup
+\geometry{margin=1in}
+\setlength{\headheight}{15pt}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{SteveROS KBot ROS2 Control Architecture}
+\lhead{\thepage}
+\cfoot{\thepage}
+
+% Colors
+\definecolor{darkblue}{RGB}{0,51,102}
+\definecolor{lightgray}{RGB}{240,240,240}
+
+% Section formatting
+\titleformat{\section}
+{\normalfont\Large\bfseries\color{darkblue}}{\thesection}{1em}{}
+
+\titleformat{\subsection}
+{\normalfont\large\bfseries}{\thesubsection}{1em}{}
+
+% Custom commands
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\ros}{\code{ROS2}}
+\newcommand{\rc}{\code{ros2\_control}}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    
+    \Huge\textbf{SteveROS KBot}
+    \vspace{0.5cm}
+    
+    \Huge\textbf{ROS2 Control Architecture}
+    \vspace{1cm}
+    
+    \Large\textbf{Technical Design Document}
+    \vspace{2cm}
+    
+    \large Version 1.0\\
+    \large \today
+    \vspace{3cm}
+    
+    \begin{abstract}
+        This document describes the architectural design for implementing ros2\_control 
+        framework on the SteveROS KBot 20-DOF humanoid robot with Robstride actuators. 
+        The architecture follows industry-standard patterns established by production-grade 
+        humanoid robots including PAL Robotics TALOS and Pollen Robotics Reachy 2.
+    \end{abstract}
+    
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+
+\subsection{Purpose}
+This document defines the software architecture for the ros2\_control integration 
+on the SteveROS KBot humanoid robot. The architecture provides a standard, maintainable, 
+and extensible framework for low-level motor control while following best practices 
+from production humanoid robot systems.
+
+\subsection{Scope}
+The architecture covers:
+\begin{itemize}
+    \item Hardware interface implementation for Robstride CAN-based actuators
+    \item Package structure and organization
+    \item ros2\_control configuration
+    \item Controller setup and deployment
+\end{itemize}
+
+\subsection{Design Goals}
+
+\begin{enumerate}
+    \item \textbf{Standard Compliance} - Follow official ros2\_control framework patterns
+    \item \textbf{Simplicity} - No over-engineering; maintain clean, minimal structure
+    \item \textbf{Maintainability} - Clear separation of concerns
+    \item \textbf{Extensibility} - Support future enhancements (simulation, MPC/WBC)
+    \item \textbf{Professional Quality} - Match industry standards from production robots
+\end{enumerate}
+
+\section{Architecture Overview}
+
+\subsection{Philosophy}
+The architecture follows the principle of \textbf{convention over configuration}, adopting 
+patterns proven in production humanoid robots. The design prioritizes:
+
+\begin{itemize}
+    \item Using the official \rc framework rather than custom solutions
+    \item Single unified hardware interface for all joints
+    \item Standard CAN-based communication using Linux SocketCAN
+    \item Clean package separation following ros2 conventions
+\end{itemize}
+
+This approach aligns with industry standards used by:
+\begin{itemize}
+    \item PAL Robotics TALOS (32-DOF industrial humanoid)
+    \item Pollen Robotics Reachy 2 (commercial service robot)
+    \item Five Ages humanoid arms (research platform)
+\end{itemize}
+
+These production systems demonstrate that \rc provides the necessary flexibility 
+and performance for full-size humanoid robots while maintaining code portability 
+and community support.
+
+\section{Package Structure}
+
+\subsection{Overview}
+The ros2 workspace follows a modular package organization with clear separation 
+of concerns:
+
+\subsection{Packages}
+
+The workspace consists of three packages:
+
+\begin{enumerate}
+    \item \textbf{steveros\_hardware} - Hardware interface implementation
+    \item \textbf{steveros\_description} - Robot model (URDF/XACRO)
+    \item \textbf{steveros\_bringup} - Launch files and configurations
+\end{enumerate}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|l|p{6cm}|}
+        \hline
+        \textbf{Package} & \textbf{Contents} \\
+        \hline
+        steveros\_hardware & C++ hardware interface, CAN bus, Robstride protocol \\
+        \hline
+        steveros\_description & URDF/XACRO, meshes, RViz config, launch files \\
+        \hline
+        steveros\_bringup & Controller configs, bringup launch files \\
+        \hline
+    \end{tabular}
+    \caption{Package structure}
+\end{table}
+
+This three-package structure follows the canonical ros2\_control demo pattern and 
+is consistent with industry practice (e.g., TALOS, Reachy 2).
+
+\section{Hardware Interface Design}
+
+\subsection{Approach}
+The hardware interface implements the \rc \code{SystemInterface} class, which is the 
+standard approach for multi-joint robotic systems. This provides:
+
+\begin{itemize}
+    \item Unified access to all 20 joint actuators
+    \item Standardized lifecycle management (initialize, configure, activate, deactivate)
+    \item Thread-safe read/write interfaces for real-time control
+    \item Plugin-based architecture for seamless simulation/mock testing
+\end{itemize}
+
+This approach is used by TALOS, Reachy 2, and the official ros2\_control demos.
+
+\subsection{Communication Layer}
+The hardware interface communicates with Robstride actuators via CAN bus using:
+
+\begin{itemize}
+    \item \textbf{Linux SocketCAN} - Native kernel-level CAN support
+    \item \textbf{Non-blocking I/O} - Using epoll for responsive control
+    \item \textbf{Per-axis abstraction} - Each motor maintains independent state/command
+\end{itemize}
+
+This pattern is validated by the ODrive hardware interface (ros\_odrive project), 
+which implements identical patterns for CAN-based motor control.
+
+\subsection{Joint Model}
+Each joint exposes:
+
+\begin{itemize}
+    \item \textbf{Command interface}: position (primary)
+    \item \textbf{State interfaces}: position, velocity, effort
+\end{itemize}
+
+This provides adequate functionality for position-based trajectory control while 
+supporting future velocity and torque interfaces if needed.
+
+\section{ros2\_control Configuration}
+
+\subsection{Hardware Definition}
+The robot description includes a single \code{<ros2\_control>} block defining:
+
+\begin{itemize}
+    \item Hardware plugin: \code{steveros\_hardware/RobstrideHardware}
+    \item CAN interface parameter: \code{can0}
+    \item All 20 joint definitions with motor IDs and limits
+\end{itemize}
+
+This single-system approach follows TALOS's pattern and is the industry standard 
+for humanoid robots.
+
+\subsection{Update Rate}
+The controller manager operates at 100 Hz, which provides:
+
+\begin{itemize}
+    \item Sufficient bandwidth for position-based control
+    \item Compatibility with joint trajectory controller requirements
+    \item Room for future rate increases (500 Hz used by Reachy 2)
+\end{itemize}
+
+\section{Controller Configuration}
+
+\subsection{Controllers}
+The system uses standard \rc controllers:
+
+\begin{enumerate}
+    \item \textbf{joint\_state\_broadcaster} - Publishes joint states to ROS topics
+    \item \textbf{joint\_trajectory\_controller} - Four instances for limb control:
+    \begin{itemize}
+        \item Right arm controller
+        \item Left arm controller  
+        \item Right leg controller
+        \item Left leg controller
+    \end{itemize}
+\end{enumerate}
+
+This controller distribution matches the physical limb structure and enables 
+independent limb control while maintaining coordination through the controller 
+manager.
+
+\subsection{Interface Support}
+Each controller is configured with:
+
+\begin{itemize}
+    \item \textbf{Command interfaces}: position
+    \item \textbf{State interfaces}: position, velocity
+    \item \textbf{Open-loop control}: disabled
+    \item \textbf{Integration in goals}: enabled
+\end{itemize}
+
+These settings follow the standard configuration from the ros2\_control demos 
+and are appropriate for trajectory-based motion.
+
+\section{Design Influences}
+
+\subsection{Primary References}
+The architecture is derived from analysis of the following production systems:
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|l|c|p{5cm}|}
+        \hline
+        \textbf{System} & \textbf{DOF} & \textbf{Key Influence} \\
+        \hline
+        PAL Robotics TALOS & 32 & Single SystemInterface, async thread \\
+        \hline
+        Pollen Robotics Reachy 2 & 21-27 & 500Hz rate, dual-bus concept \\
+        \hline
+        ODrive ros2\_control & 2 & CAN communication patterns \\
+        \hline
+        K-Scale KBot & 20 & Robstride motor configuration \\
+        \hline
+        ros2\_control demos & - & Package structure, lifecycle patterns \\
+        \hline
+    \end{tabular}
+    \caption{Architecture influence sources}
+\end{table}
+
+\subsection{Why These Patterns}
+Each pattern was selected based on:
+
+\begin{itemize}
+    \item \textbf{Production validation} - Used in deployed humanoid robots
+    \item \textbf{Community support} - Follows official framework conventions
+    \item \textbf{Extensibility} - Enables future enhancements (simulation, MPC, WBC)
+    \item \textbf{Maintainability} - Clear patterns understood by ros2 developers
+\end{itemize}
+
+\section{Future Extensions}
+
+\subsection{Simulation Support}
+The architecture supports future simulation integration through:
+
+\begin{itemize}
+    \item \textbf{MuJoCo} - Via mujoco\_ros2\_control plugin
+    \item \textbf{Gazebo} - Via gazebo\_ros2\_control plugin
+\end{itemize}
+
+These can be enabled by changing the hardware plugin in the URDF, with no changes 
+to higher-level code.
+
+\subsection{Advanced Control}
+The hardware interface design supports future implementation of:
+
+\begin{itemize}
+    \item \textbf{MPC/WBC} - Via legged\_control framework integration
+    \item \textbf{RL policies} - Via Isaac Lab deployment
+    \item \textbf{Torque control} - Adding effort command interface
+\end{itemize}
+
+These extensions require no changes to the core architecture.
+
+\section{Summary}
+
+The SteveROS KBot ros2\_control architecture follows industry-standard patterns 
+established by production humanoid robots. Key characteristics:
+
+\begin{itemize}
+    \item \textbf{Standard} - Uses official ros2\_control framework
+    \item \textbf{Clean} - Three-package structure with clear separation
+    \item \textbf{Scalable} - Single SystemInterface for all joints
+    \item \textbf{Proven} - Patterns validated by TALOS, Reachy 2, and fiveages
+    \item \textbf{Extensible} - Ready for simulation and advanced control
+\end{itemize}
+
+This architecture provides a professional foundation for the KBot humanoid robot 
+while maintaining simplicity and avoiding unnecessary complexity.
+
+\section{References}
+
+\begin{thebibliography}{99}
+
+    \bibitem{talos}
+    PAL Robotics, ``TALOS Robot ROS2 Packages,''
+    \url{https://github.com/pal-robotics/talos_robot}, 2025.
+
+    \bibitem{reachy}
+    Pollen Robotics, ``Reachy 2 Core ROS2 Workspace,''
+    \url{https://github.com/pollen-robotics/reachy2_core}, 2025.
+
+    \bibitem{ros2control}
+    ros-controls, ``ros2\_control Framework,''
+    \url{https://github.com/ros-controls/ros2_control}, 2025.
+
+    \bibitem{ros2controldemos}
+    ros-controls, ``ros2\_control Demos,''
+    \url{https://github.com/ros-controls/ros2_control_demos}, 2025.
+
+    \bibitem{rosodrive}
+    ODrive Robotics, ``ros\_odrive: ROS2 ros2\_control Driver for ODrive,''
+    \url{https://github.com/odriverobotics/ros_odrive}, 2025.
+
+    \bibitem{kbot}
+    K-Scale Labs, ``KBot Humanoid Robot,''
+    \url{https://github.com/kscalelabs/kbot}, 2025.
+
+    \bibitem{fiveages}
+    Five Ages, ``arms\_ros2\_control,''
+    \url{https://github.com/fiveages-sim/arms_ros2_control}, 2025.
+
+    \bibitem{mujoco}
+    ros-controls, ``mujoco\_ros2\_control,''
+    \url{https://github.com/ros-controls/mujoco_ros2_control}, 2025.
+
+\end{thebibliography}
+
+\end{document}
