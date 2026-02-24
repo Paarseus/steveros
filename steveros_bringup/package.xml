@@ -3,7 +3,7 @@
 <package format="3">
   <name>steveros_bringup</name>
   <version>0.1.0</version>
-  <description>Launch and controller config for SteveROS 5-DOF arm</description>
+  <description>Launch and controller config for SteveROS KBot 20-DOF humanoid</description>
   <maintainer email="nemo@todo.todo">nemo</maintainer>
   <license>MIT</license>
 
