@@ -18,6 +18,7 @@
 
     <joint name="dof_right_shoulder_pitch_03">
       <param name="motor_id">21</param>
+      <param name="motor_type">RS03</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">
@@ -31,6 +32,7 @@
 
     <joint name="dof_right_shoulder_roll_03">
       <param name="motor_id">22</param>
+      <param name="motor_type">RS03</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">
@@ -44,6 +46,7 @@
 
     <joint name="dof_right_shoulder_yaw_02">
       <param name="motor_id">23</param>
+      <param name="motor_type">RS02</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">
@@ -57,6 +60,7 @@
 
     <joint name="dof_right_elbow_02">
       <param name="motor_id">24</param>
+      <param name="motor_type">RS02</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">
@@ -70,6 +74,7 @@
 
     <joint name="dof_right_wrist_00">
       <param name="motor_id">25</param>
+      <param name="motor_type">RS02</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">
@@ -85,6 +90,7 @@
 
     <joint name="dof_left_shoulder_pitch_03">
       <param name="motor_id">11</param>
+      <param name="motor_type">RS03</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">
@@ -98,6 +104,7 @@
 
     <joint name="dof_left_shoulder_roll_03">
       <param name="motor_id">12</param>
+      <param name="motor_type">RS03</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">
@@ -111,6 +118,7 @@
 
     <joint name="dof_left_shoulder_yaw_02">
       <param name="motor_id">13</param>
+      <param name="motor_type">RS02</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">
@@ -124,6 +132,7 @@
 
     <joint name="dof_left_elbow_02">
       <param name="motor_id">14</param>
+      <param name="motor_type">RS02</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">
@@ -137,6 +146,7 @@
 
     <joint name="dof_left_wrist_00">
       <param name="motor_id">15</param>
+      <param name="motor_type">RS02</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">
@@ -152,6 +162,7 @@
 
     <joint name="dof_right_hip_pitch_04">
       <param name="motor_id">41</param>
+      <param name="motor_type">RS04</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">
@@ -165,6 +176,7 @@
 
     <joint name="dof_right_hip_roll_03">
       <param name="motor_id">42</param>
+      <param name="motor_type">RS03</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">
@@ -178,6 +190,7 @@
 
     <joint name="dof_right_hip_yaw_03">
       <param name="motor_id">43</param>
+      <param name="motor_type">RS03</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">
@@ -191,6 +204,7 @@
 
     <joint name="dof_right_knee_04">
       <param name="motor_id">44</param>
+      <param name="motor_type">RS04</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">
@@ -204,6 +218,7 @@
 
     <joint name="dof_right_ankle_02">
       <param name="motor_id">45</param>
+      <param name="motor_type">RS02</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">
@@ -219,6 +234,7 @@
 
     <joint name="dof_left_hip_pitch_04">
       <param name="motor_id">31</param>
+      <param name="motor_type">RS04</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">
@@ -232,6 +248,7 @@
 
     <joint name="dof_left_hip_roll_03">
       <param name="motor_id">32</param>
+      <param name="motor_type">RS03</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">
@@ -245,6 +262,7 @@
 
     <joint name="dof_left_hip_yaw_03">
       <param name="motor_id">33</param>
+      <param name="motor_type">RS03</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">
@@ -258,6 +276,7 @@
 
     <joint name="dof_left_knee_04">
       <param name="motor_id">34</param>
+      <param name="motor_type">RS04</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">
@@ -271,6 +290,7 @@
 
     <joint name="dof_left_ankle_02">
       <param name="motor_id">35</param>
+      <param name="motor_type">RS02</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
       <command_interface name="position">

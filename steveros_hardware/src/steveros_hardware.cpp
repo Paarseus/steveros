@@ -1,37 +1,21 @@
 #include "steveros_hardware/steveros_hardware.hpp"
 
 #include <algorithm>
-#include <cerrno>
 #include <cmath>
-#include <cstring>
 #include <string>
 #include <vector>
 
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "steveros_hardware/robstride_protocol.hpp"
 
 namespace steveros_hardware
 {
 
-// Degrees to radians
 static constexpr double DEG_TO_RAD = M_PI / 180.0;
 
-// ---------------------------------------------------------------------------
-// CAN send helper
-// ---------------------------------------------------------------------------
-
-bool SteveROSHardware::send_can_frame(const can_frame & frame)
-{
-  ssize_t nbytes = ::write(can_socket_, &frame, sizeof(frame));
-  if (nbytes != sizeof(frame)) {
-    RCLCPP_ERROR(
-      get_logger(), "CAN write failed: %s (arb_id=0x%08X)",
-      std::strerror(errno), frame.can_id);
-    return false;
-  }
-  return true;
-}
+// Default Kd for soft-enable phase (per EDULITE_A3: Kd=4.0 for RS01/RS02).
+// RS03/RS04 have range 0-100; 4.0 is still conservative. Tune after testing.
+static constexpr float kSoftEnableKd = 4.0f;
 
 // ---------------------------------------------------------------------------
 // Lifecycle: on_init
@@ -47,17 +31,14 @@ hardware_interface::CallbackReturn SteveROSHardware::on_init(
     return hardware_interface::CallbackReturn::ERROR;
   }
 
-  // Parse hardware-level params
   can_interface_ = info_.hardware_parameters.count("can_interface")
     ? info_.hardware_parameters.at("can_interface")
     : "can0";
 
-  // Feedback timeout (hardware parameter, default 100ms)
   if (info_.hardware_parameters.count("feedback_timeout")) {
     feedback_timeout_s_ = std::stod(info_.hardware_parameters.at("feedback_timeout"));
   }
 
-  // Kp ramp duration (hardware parameter, default 1s)
   if (info_.hardware_parameters.count("kp_ramp_duration")) {
     kp_ramp_duration_s_ = std::stod(info_.hardware_parameters.at("kp_ramp_duration"));
   }
@@ -68,8 +49,9 @@ hardware_interface::CallbackReturn SteveROSHardware::on_init(
     "Initializing with %zu joints on CAN interface '%s'",
     num_joints, can_interface_.c_str());
 
-  // Parse per-joint params from URDF ros2_control tags
   joint_configs_.resize(num_joints);
+  joint_states_.resize(num_joints);
+
   for (size_t i = 0; i < num_joints; i++) {
     const auto & joint = info_.joints[i];
 
@@ -81,27 +63,48 @@ hardware_interface::CallbackReturn SteveROSHardware::on_init(
       return default_val;
     };
 
+    auto get_string_param = [&](const std::string & key,
+      const std::string & default_val) -> std::string {
+      auto it = joint.parameters.find(key);
+      if (it != joint.parameters.end()) {
+        return it->second;
+      }
+      return default_val;
+    };
+
     joint_configs_[i].motor_id = static_cast<int>(get_param("motor_id", 0));
     joint_configs_[i].sign = static_cast<int>(get_param("sign", 1));
     joint_configs_[i].zero_offset_rad = get_param("zero_offset_deg", 0.0) * DEG_TO_RAD;
     joint_configs_[i].kp = get_param("kp", 20.0);
     joint_configs_[i].kd = get_param("kd", 2.0);
 
-    // Per-joint torque limit from URDF <limit effort="..."> with fallback to protocol max
+    // Parse motor_type from URDF param
+    std::string motor_type_str = get_string_param("motor_type", "RS02");
+    try {
+      joint_configs_[i].motor_type = robstride::parse_motor_type(motor_type_str);
+    } catch (const std::invalid_argument & e) {
+      RCLCPP_FATAL(get_logger(), "Joint '%s': %s", joint.name.c_str(), e.what());
+      return hardware_interface::CallbackReturn::ERROR;
+    }
+
+    // Per-joint torque limit from URDF <limit effort="...">
+    auto motor_params = robstride::get_motor_params(joint_configs_[i].motor_type);
+    double max_protocol_torque = static_cast<double>(motor_params.torque_max);
     auto limits_it = info_.limits.find(joint.name);
     if (limits_it != info_.limits.end() && limits_it->second.has_effort_limits) {
       joint_configs_[i].max_torque =
-        std::min(limits_it->second.max_effort, 12.0);  // cap at protocol max
+        std::min(limits_it->second.max_effort, max_protocol_torque);
     } else {
-      joint_configs_[i].max_torque = 12.0;
+      joint_configs_[i].max_torque = max_protocol_torque;
     }
 
     RCLCPP_INFO(
       get_logger(),
-      "  Joint '%s': motor_id=%d, sign=%d, zero_offset=%.2f deg, "
+      "  Joint '%s': motor_id=%d, type=%s, sign=%d, zero_offset=%.2f deg, "
       "kp=%.1f, kd=%.1f, max_torque=%.1f Nm",
       joint.name.c_str(),
       joint_configs_[i].motor_id,
+      motor_type_str.c_str(),
       joint_configs_[i].sign,
       get_param("zero_offset_deg", 0.0),
       joint_configs_[i].kp,
@@ -128,7 +131,7 @@ hardware_interface::CallbackReturn SteveROSHardware::on_init(
     }
   }
 
-  // Build motor_id → joint index map and validate
+  // Build motor_id → joint index map
   motor_id_to_index_.clear();
   for (size_t i = 0; i < num_joints; i++) {
     int mid = joint_configs_[i].motor_id;
@@ -150,126 +153,105 @@ hardware_interface::CallbackReturn SteveROSHardware::on_init(
     }
   }
 
-  // Allocate state/command vectors
-  hw_positions_.resize(num_joints, 0.0);
-  hw_velocities_.resize(num_joints, 0.0);
-  hw_efforts_.resize(num_joints, 0.0);
-  hw_commands_.resize(num_joints, 0.0);
-  hw_motor_temp_.resize(num_joints, 0);
-  hw_motor_status_.resize(num_joints, 0);
   last_feedback_time_.resize(num_joints);
 
   return hardware_interface::CallbackReturn::SUCCESS;
 }
 
 // ---------------------------------------------------------------------------
-// Lifecycle: on_configure — open SocketCAN
+// Lifecycle: on_configure
 // ---------------------------------------------------------------------------
 
 hardware_interface::CallbackReturn SteveROSHardware::on_configure(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  RCLCPP_INFO(get_logger(), "Configuring: opening CAN socket on '%s'...", can_interface_.c_str());
+  RCLCPP_INFO(get_logger(), "Configuring: opening CAN driver on '%s'...", can_interface_.c_str());
 
-  // Create raw CAN socket
-  can_socket_ = ::socket(PF_CAN, SOCK_RAW, CAN_RAW);
-  if (can_socket_ < 0) {
-    RCLCPP_FATAL(get_logger(), "Failed to create CAN socket: %s", std::strerror(errno));
+  driver_ = std::make_unique<robstride::RobstrideCanDriver>();
+  if (!driver_->open(can_interface_)) {
+    RCLCPP_FATAL(get_logger(), "Failed to open CAN driver on '%s'.", can_interface_.c_str());
+    driver_.reset();
     return hardware_interface::CallbackReturn::ERROR;
   }
 
-  // Resolve interface name to index
-  struct ifreq ifr{};
-  std::strncpy(ifr.ifr_name, can_interface_.c_str(), IFNAMSIZ - 1);
-  if (::ioctl(can_socket_, SIOCGIFINDEX, &ifr) < 0) {
-    RCLCPP_FATAL(
-      get_logger(), "Failed to find CAN interface '%s': %s",
-      can_interface_.c_str(), std::strerror(errno));
-    ::close(can_socket_);
-    can_socket_ = -1;
-    return hardware_interface::CallbackReturn::ERROR;
-  }
-
-  // Bind socket to interface
-  struct sockaddr_can addr{};
-  addr.can_family = AF_CAN;
-  addr.can_ifindex = ifr.ifr_ifindex;
-  if (::bind(can_socket_, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) < 0) {
-    RCLCPP_FATAL(
-      get_logger(), "Failed to bind CAN socket: %s", std::strerror(errno));
-    ::close(can_socket_);
-    can_socket_ = -1;
-    return hardware_interface::CallbackReturn::ERROR;
-  }
-
-  // Set receive filter: accept only Type 2 (feedback) frames
-  // Type 2 has bits [28:24] = 0x02, so mask those bits
-  struct can_filter rfilter{};
-  rfilter.can_id = (2u << 24) | CAN_EFF_FLAG;
-  rfilter.can_mask = (0x1Fu << 24) | CAN_EFF_FLAG;
-  if (::setsockopt(can_socket_, SOL_CAN_RAW, CAN_RAW_FILTER,
-    &rfilter, sizeof(rfilter)) < 0)
-  {
-    RCLCPP_WARN(
-      get_logger(), "Failed to set CAN receive filter (non-fatal): %s",
-      std::strerror(errno));
-  }
-
-  // Initialize state vectors to zero
-  for (size_t i = 0; i < hw_positions_.size(); i++) {
-    hw_positions_[i] = 0.0;
-    hw_velocities_[i] = 0.0;
-    hw_efforts_[i] = 0.0;
-    hw_commands_[i] = 0.0;
-    hw_motor_temp_[i] = 0;
-    hw_motor_status_[i] = 0;
-  }
-
-  RCLCPP_INFO(get_logger(), "Configured: CAN socket open on '%s'.", can_interface_.c_str());
+  RCLCPP_INFO(get_logger(), "Configured: CAN driver open on '%s'.", can_interface_.c_str());
   return hardware_interface::CallbackReturn::SUCCESS;
 }
 
 // ---------------------------------------------------------------------------
-// Lifecycle: on_activate — enable motors and read initial positions
+// Lifecycle: on_activate — 4-phase safe activation sequence (ADR-2)
 // ---------------------------------------------------------------------------
 
 hardware_interface::CallbackReturn SteveROSHardware::on_activate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  RCLCPP_INFO(get_logger(), "Activating: enabling %zu motors...", joint_configs_.size());
+  RCLCPP_INFO(get_logger(), "Activating: %zu motors...", joint_configs_.size());
 
-  // Send motor enable (Type 3) for all joints
+  // Phase 0: Clear faults
+  RCLCPP_INFO(get_logger(), "Phase 0: Clearing faults...");
   for (const auto & cfg : joint_configs_) {
-    send_can_frame(robstride::encode_enable(cfg.motor_id));
+    driver_->clear_fault(cfg.motor_id);
+    ::usleep(50'000);
+  }
+  ::usleep(200'000);
+
+  // Phase 1: Soft enable (Kp=0)
+  RCLCPP_INFO(get_logger(), "Phase 1: Soft enable (Kp=0)...");
+  for (const auto & cfg : joint_configs_) {
+    auto params = robstride::get_motor_params(cfg.motor_type);
+
+    driver_->set_run_mode(cfg.motor_id, robstride::kRunModeMotionControl);
+    ::usleep(30'000);
+
+    driver_->enable_motor(cfg.motor_id);
+
+    // MIT command with Kp=0 (motor is enabled but limp)
+    robstride::MitCommand cmd;
+    cmd.motor_id = cfg.motor_id;
+    cmd.kd = kSoftEnableKd;
+    cmd.max_torque = static_cast<float>(cfg.max_torque);
+    driver_->send_frame(robstride::encode_mit_command(cmd, params));
+    ::usleep(50'000);
   }
 
-  // Wait for feedback frames to arrive (~2.6ms needed at 1Mbps for 20 motors)
-  ::usleep(10000);
+  // Phase 2: Read initial positions from feedback cache
+  RCLCPP_INFO(get_logger(), "Phase 2: Reading initial positions...");
+  for (size_t i = 0; i < joint_configs_.size(); i++) {
+    const auto & cfg = joint_configs_[i];
 
-  // Drain feedback to read initial motor positions
-  struct can_frame frame{};
-  while (::recv(can_socket_, &frame, sizeof(frame), MSG_DONTWAIT) == sizeof(frame)) {
-    auto fb = robstride::decode_feedback(frame);
-    if (!fb) {
-      continue;
+    if (!driver_->has_valid_feedback(cfg.motor_id)) {
+      RCLCPP_ERROR(
+        get_logger(),
+        "No feedback from motor %d ('%s') after activation.",
+        cfg.motor_id, info_.joints[i].name.c_str());
+      return hardware_interface::CallbackReturn::ERROR;
     }
 
-    auto it = motor_id_to_index_.find(fb->motor_id);
-    if (it == motor_id_to_index_.end()) {
-      continue;
-    }
+    auto fb = driver_->get_feedback(cfg.motor_id);
 
-    size_t idx = it->second;
-    hw_positions_[idx] = motor_to_joint(
-      joint_configs_[idx], static_cast<double>(fb->position));
+    joint_states_[i].position = motor_to_joint(cfg, static_cast<double>(fb.position));
+    joint_states_[i].velocity = cfg.sign * static_cast<double>(fb.velocity);
+    joint_states_[i].effort = cfg.sign * static_cast<double>(fb.torque);
+    joint_states_[i].command_position = joint_states_[i].position;
   }
 
-  // Set commands to current position to prevent snap-to-zero
-  for (size_t i = 0; i < hw_commands_.size(); i++) {
-    hw_commands_[i] = hw_positions_[i];
+  // Phase 3: Position hold — ramp begins in first write() cycle
+  RCLCPP_INFO(get_logger(), "Phase 3: Starting position hold with Kp ramp...");
+  for (size_t i = 0; i < joint_configs_.size(); i++) {
+    const auto & cfg = joint_configs_[i];
+    auto params = robstride::get_motor_params(cfg.motor_type);
+    float motor_pos = static_cast<float>(joint_to_motor(cfg, joint_states_[i].command_position));
+
+    robstride::MitCommand cmd;
+    cmd.motor_id = cfg.motor_id;
+    cmd.p_des = motor_pos;
+    cmd.kp = static_cast<float>(cfg.kp);
+    cmd.kd = static_cast<float>(cfg.kd);
+    cmd.max_torque = static_cast<float>(cfg.max_torque);
+    driver_->send_frame(robstride::encode_mit_command(cmd, params));
+    ::usleep(30'000);
   }
 
-  // Initialize feedback timestamps and start Kp ramp
   rclcpp::Time now = get_clock()->now();
   for (size_t i = 0; i < last_feedback_time_.size(); i++) {
     last_feedback_time_[i] = now;
@@ -284,7 +266,7 @@ hardware_interface::CallbackReturn SteveROSHardware::on_activate(
 }
 
 // ---------------------------------------------------------------------------
-// Lifecycle: on_deactivate — zero-torque then stop
+// Lifecycle: on_deactivate
 // ---------------------------------------------------------------------------
 
 hardware_interface::CallbackReturn SteveROSHardware::on_deactivate(
@@ -292,19 +274,18 @@ hardware_interface::CallbackReturn SteveROSHardware::on_deactivate(
 {
   RCLCPP_INFO(get_logger(), "Deactivating: sending zero-torque commands...");
 
-  // Step 1: send zero-torque MIT commands (kp=0, kd=0, t_ff=0) — go limp safely
   for (const auto & cfg : joint_configs_) {
+    auto params = robstride::get_motor_params(cfg.motor_type);
     robstride::MitCommand cmd;
     cmd.motor_id = cfg.motor_id;
-    send_can_frame(robstride::encode_mit_command(cmd));
+    cmd.max_torque = static_cast<float>(cfg.max_torque);
+    driver_->send_frame(robstride::encode_mit_command(cmd, params));
   }
 
-  // Brief pause for commands to process
   ::usleep(5000);
 
-  // Step 2: send motor stop (Type 4)
   for (const auto & cfg : joint_configs_) {
-    send_can_frame(robstride::encode_stop(cfg.motor_id));
+    driver_->disable_motor(cfg.motor_id);
   }
 
   ramping_ = false;
@@ -314,7 +295,7 @@ hardware_interface::CallbackReturn SteveROSHardware::on_deactivate(
 }
 
 // ---------------------------------------------------------------------------
-// Lifecycle: on_cleanup — close CAN socket
+// Lifecycle: on_cleanup
 // ---------------------------------------------------------------------------
 
 hardware_interface::CallbackReturn SteveROSHardware::on_cleanup(
@@ -322,9 +303,9 @@ hardware_interface::CallbackReturn SteveROSHardware::on_cleanup(
 {
   RCLCPP_INFO(get_logger(), "Cleaning up...");
 
-  if (can_socket_ >= 0) {
-    ::close(can_socket_);
-    can_socket_ = -1;
+  if (driver_) {
+    driver_->close();
+    driver_.reset();
   }
 
   RCLCPP_INFO(get_logger(), "Cleaned up.");
@@ -341,11 +322,11 @@ SteveROSHardware::export_state_interfaces()
   std::vector<hardware_interface::StateInterface> state_interfaces;
   for (size_t i = 0; i < info_.joints.size(); i++) {
     state_interfaces.emplace_back(
-      info_.joints[i].name, hardware_interface::HW_IF_POSITION, &hw_positions_[i]);
+      info_.joints[i].name, hardware_interface::HW_IF_POSITION, &joint_states_[i].position);
     state_interfaces.emplace_back(
-      info_.joints[i].name, hardware_interface::HW_IF_VELOCITY, &hw_velocities_[i]);
+      info_.joints[i].name, hardware_interface::HW_IF_VELOCITY, &joint_states_[i].velocity);
     state_interfaces.emplace_back(
-      info_.joints[i].name, hardware_interface::HW_IF_EFFORT, &hw_efforts_[i]);
+      info_.joints[i].name, hardware_interface::HW_IF_EFFORT, &joint_states_[i].effort);
   }
   return state_interfaces;
 }
@@ -356,56 +337,44 @@ SteveROSHardware::export_command_interfaces()
   std::vector<hardware_interface::CommandInterface> command_interfaces;
   for (size_t i = 0; i < info_.joints.size(); i++) {
     command_interfaces.emplace_back(
-      info_.joints[i].name, hardware_interface::HW_IF_POSITION, &hw_commands_[i]);
+      info_.joints[i].name, hardware_interface::HW_IF_POSITION,
+      &joint_states_[i].command_position);
   }
   return command_interfaces;
 }
 
 // ---------------------------------------------------------------------------
-// read() — non-blocking CAN drain loop with timeout and fault parsing
+// read() — copy from background thread feedback cache
 // ---------------------------------------------------------------------------
 
 hardware_interface::return_type SteveROSHardware::read(
   const rclcpp::Time & time, const rclcpp::Duration & /*period*/)
 {
-  struct can_frame frame{};
-  while (::recv(can_socket_, &frame, sizeof(frame), MSG_DONTWAIT) == sizeof(frame)) {
-    auto fb = robstride::decode_feedback(frame);
-    if (!fb) {
+  for (size_t i = 0; i < joint_configs_.size(); i++) {
+    const auto & cfg = joint_configs_[i];
+
+    if (!driver_->has_valid_feedback(cfg.motor_id)) {
       continue;
     }
 
-    auto it = motor_id_to_index_.find(fb->motor_id);
-    if (it == motor_id_to_index_.end()) {
-      RCLCPP_WARN_THROTTLE(
-        get_logger(), *get_clock(), 5000,
-        "Received feedback from unknown motor_id=%d", fb->motor_id);
-      continue;
-    }
+    auto fb = driver_->get_feedback(cfg.motor_id);
 
-    size_t idx = it->second;
-    const auto & cfg = joint_configs_[idx];
+    joint_states_[i].position = motor_to_joint(cfg, static_cast<double>(fb.position));
+    joint_states_[i].velocity = cfg.sign * static_cast<double>(fb.velocity);
+    joint_states_[i].effort = cfg.sign * static_cast<double>(fb.torque);
 
-    hw_positions_[idx] = motor_to_joint(cfg, static_cast<double>(fb->position));
-    hw_velocities_[idx] = cfg.sign * static_cast<double>(fb->velocity);
-    hw_efforts_[idx] = cfg.sign * static_cast<double>(fb->torque);
-
-    // Parse temperature and status/fault byte
-    hw_motor_temp_[idx] = fb->temperature;
-    hw_motor_status_[idx] = fb->status;
-
-    if (fb->status != 0) {
+    if (fb.status != 0) {
       RCLCPP_ERROR_THROTTLE(
         get_logger(), *get_clock(), 1000,
         "Motor %d ('%s') fault: status=0x%02X, temp=%u°C",
-        fb->motor_id, info_.joints[idx].name.c_str(),
-        fb->status, fb->temperature);
+        fb.motor_id, info_.joints[i].name.c_str(),
+        fb.status, fb.temperature);
     }
 
-    last_feedback_time_[idx] = time;
+    last_feedback_time_[i] = time;
   }
 
-  // Check for feedback timeout on each joint
+  // Check for feedback timeout
   for (size_t i = 0; i < joint_configs_.size(); i++) {
     double elapsed = (time - last_feedback_time_[i]).seconds();
     if (elapsed > feedback_timeout_s_) {
@@ -422,13 +391,12 @@ hardware_interface::return_type SteveROSHardware::read(
 }
 
 // ---------------------------------------------------------------------------
-// write() — send MIT mode commands with Kp ramp and per-joint torque clamp
+// write() — send MIT commands with per-model params and Kp ramp
 // ---------------------------------------------------------------------------
 
 hardware_interface::return_type SteveROSHardware::write(
   const rclcpp::Time & time, const rclcpp::Duration & /*period*/)
 {
-  // Compute Kp ramp factor (0→1 over kp_ramp_duration_s_ after activation)
   double kp_scale = 1.0;
   if (ramping_) {
     double elapsed = (time - activation_time_).seconds();
@@ -440,18 +408,17 @@ hardware_interface::return_type SteveROSHardware::write(
 
   for (size_t i = 0; i < joint_configs_.size(); i++) {
     const auto & cfg = joint_configs_[i];
-    float motor_pos = static_cast<float>(joint_to_motor(cfg, hw_commands_[i]));
+    auto params = robstride::get_motor_params(cfg.motor_type);
+    float motor_pos = static_cast<float>(joint_to_motor(cfg, joint_states_[i].command_position));
 
     robstride::MitCommand cmd;
     cmd.motor_id = cfg.motor_id;
     cmd.p_des = motor_pos;
-    cmd.v_des = 0.0f;
     cmd.kp = static_cast<float>(kp_scale * cfg.kp);
     cmd.kd = static_cast<float>(cfg.kd);
-    cmd.t_ff = 0.0f;
     cmd.max_torque = static_cast<float>(cfg.max_torque);
 
-    send_can_frame(robstride::encode_mit_command(cmd));
+    driver_->send_frame(robstride::encode_mit_command(cmd, params));
   }
 
   return hardware_interface::return_type::OK;

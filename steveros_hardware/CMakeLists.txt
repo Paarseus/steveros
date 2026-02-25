@@ -12,6 +12,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 
 add_library(steveros_hardware SHARED
+  src/robstride_can_driver.cpp
   src/steveros_hardware.cpp
 )
 target_compile_features(steveros_hardware PUBLIC cxx_std_17)

@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <cstring>
 #include <optional>
+#include <stdexcept>
+#include <string>
 
 #include <linux/can.h>
 
@@ -17,23 +19,68 @@ namespace robstride
 
 static constexpr int kHostId = 0xFD;
 
-// Feedback field ranges
-static constexpr float kPosMin = -12.5f;
-static constexpr float kPosMax = 12.5f;
-static constexpr float kVelMin = -45.0f;
-static constexpr float kVelMax = 45.0f;
-static constexpr float kKpMin = 0.0f;
-static constexpr float kKpMax = 500.0f;
-static constexpr float kKdMin = 0.0f;
-static constexpr float kKdMax = 5.0f;
-static constexpr float kTorqueMin = -12.0f;
-static constexpr float kTorqueMax = 12.0f;
+// Feedback decode ranges (SAME for all motor types)
+static constexpr float kFbPosMin = -12.5f;
+static constexpr float kFbPosMax = 12.5f;
+static constexpr float kFbVelMin = -45.0f;
+static constexpr float kFbVelMax = 45.0f;
+static constexpr float kFbTorqueMin = -12.0f;
+static constexpr float kFbTorqueMax = 12.0f;
 
 // CAN frame type IDs
 static constexpr uint32_t kTypeMitCommand = 1;
 static constexpr uint32_t kTypeFeedback = 2;
 static constexpr uint32_t kTypeEnable = 3;
 static constexpr uint32_t kTypeStop = 4;
+static constexpr uint32_t kTypeParamWrite = 18;
+
+// Parameter indices
+static constexpr uint16_t kParamRunMode = 0x7005;
+
+// Run modes
+static constexpr uint8_t kRunModeMotionControl = 0;
+
+// ---------------------------------------------------------------------------
+// Per-model motor parameters
+// ---------------------------------------------------------------------------
+
+enum class MotorType { RS01, RS02, RS03, RS04 };
+
+struct MotorParams
+{
+  float pos_min, pos_max;
+  float vel_min, vel_max;
+  float torque_min, torque_max;
+  float kp_min, kp_max;
+  float kd_min, kd_max;
+};
+
+static constexpr float kPi = 3.14159265358979323846f;
+
+constexpr MotorParams get_motor_params(MotorType type)
+{
+  switch (type) {
+    case MotorType::RS01:
+      return {-4*kPi, 4*kPi, -44.0f, 44.0f, -17.0f, 17.0f, 0.0f, 500.0f, 0.0f, 5.0f};
+    case MotorType::RS02:
+      return {-4*kPi, 4*kPi, -44.0f, 44.0f, -17.0f, 17.0f, 0.0f, 500.0f, 0.0f, 5.0f};
+    case MotorType::RS03:
+      return {-4*kPi, 4*kPi, -20.0f, 20.0f, -60.0f, 60.0f, 0.0f, 5000.0f, 0.0f, 100.0f};
+    case MotorType::RS04:
+      return {-4*kPi, 4*kPi, -15.0f, 15.0f, -120.0f, 120.0f, 0.0f, 5000.0f, 0.0f, 100.0f};
+  }
+  // Unreachable, but silences compiler warnings
+  return {-4*kPi, 4*kPi, -44.0f, 44.0f, -17.0f, 17.0f, 0.0f, 500.0f, 0.0f, 5.0f};
+}
+
+inline MotorType parse_motor_type(const std::string & s)
+{
+  if (s == "RS01") return MotorType::RS01;
+  if (s == "RS02") return MotorType::RS02;
+  if (s == "RS03") return MotorType::RS03;
+  if (s == "RS04") return MotorType::RS04;
+  throw std::invalid_argument("Unknown motor_type: " + s);
+}
 
 // ---------------------------------------------------------------------------
 // Conversion helpers
@@ -64,33 +111,33 @@ struct MitCommand
   float kp = 0.0f;
   float kd = 0.0f;
   float t_ff = 0.0f;
-  float max_torque = 12.0f;  // per-joint torque clamp
+  float max_torque = 12.0f;
 };
 
 struct MotorFeedback
 {
   int motor_id = 0;
-  float position = 0.0f;    // radians
-  float velocity = 0.0f;    // rad/s
-  float torque = 0.0f;      // Nm
-  uint8_t temperature = 0;  // degrees C
-  uint8_t status = 0;       // fault/status byte
+  float position = 0.0f;
+  float velocity = 0.0f;
+  float torque = 0.0f;
+  uint8_t temperature = 0;
+  uint8_t status = 0;
 };
 
 // ---------------------------------------------------------------------------
 // Frame encoding
 // ---------------------------------------------------------------------------
 
-/// Encode MIT mode command (Type 1 frame). Clamps t_ff to [-max_torque, max_torque].
-inline can_frame encode_mit_command(const MitCommand & cmd)
+/// Encode MIT command with per-model encoding ranges.
+inline can_frame encode_mit_command(const MitCommand & cmd, const MotorParams & params)
 {
   float t_ff = std::clamp(cmd.t_ff, -cmd.max_torque, cmd.max_torque);
 
-  uint16_t p_uint = float_to_uint(cmd.p_des, kPosMin, kPosMax, 16);
-  uint16_t v_uint = float_to_uint(cmd.v_des, kVelMin, kVelMax, 16);
-  uint16_t kp_uint = float_to_uint(cmd.kp, kKpMin, kKpMax, 16);
-  uint16_t kd_uint = float_to_uint(cmd.kd, kKdMin, kKdMax, 16);
-  uint16_t t_uint = float_to_uint(t_ff, kTorqueMin, kTorqueMax, 16);
+  uint16_t p_uint = float_to_uint(cmd.p_des, params.pos_min, params.pos_max, 16);
+  uint16_t v_uint = float_to_uint(cmd.v_des, params.vel_min, params.vel_max, 16);
+  uint16_t kp_uint = float_to_uint(cmd.kp, params.kp_min, params.kp_max, 16);
+  uint16_t kd_uint = float_to_uint(cmd.kd, params.kd_min, params.kd_max, 16);
+  uint16_t t_uint = float_to_uint(t_ff, params.torque_min, params.torque_max, 16);
 
   can_frame frame{};
   frame.can_id =
@@ -110,6 +157,13 @@ inline can_frame encode_mit_command(const MitCommand & cmd)
   return frame;
 }
 
+/// Legacy overload: encodes using hardcoded RS01/RS02 ranges for backward compatibility.
+inline can_frame encode_mit_command(const MitCommand & cmd)
+{
+  static constexpr MotorParams kDefaultParams = get_motor_params(MotorType::RS02);
+  return encode_mit_command(cmd, kDefaultParams);
+}
+
 /// Encode motor enable command (Type 3 frame).
 inline can_frame encode_enable(int motor_id)
 {
@@ -124,7 +178,7 @@ inline can_frame encode_enable(int motor_id)
   return frame;
 }
 
-/// Encode motor stop command (Type 4 frame).
+/// Encode motor stop command (Type 4 frame, data[0]=0).
 inline can_frame encode_stop(int motor_id)
 {
   can_frame frame{};
@@ -135,6 +189,48 @@ inline can_frame encode_stop(int motor_id)
     CAN_EFF_FLAG;
   frame.can_dlc = 8;
   std::memset(frame.data, 0, 8);
+  return frame;
+}
+
+/// Encode stop + clear fault (Type 4 frame, data[0]=1).
+inline can_frame encode_stop_clear_fault(int motor_id)
+{
+  can_frame frame{};
+  frame.can_id =
+    (kTypeStop << 24) |
+    (static_cast<uint32_t>(kHostId) << 8) |
+    static_cast<uint32_t>(motor_id) |
+    CAN_EFF_FLAG;
+  frame.can_dlc = 8;
+  std::memset(frame.data, 0, 8);
+  frame.data[0] = 1;
+  return frame;
+}
+
+/// Encode parameter write (Type 18 frame).
+/// Data layout: index[0:1] LE, pad[2:3], value[4:7] LE float.
+inline can_frame encode_param_write(int motor_id, uint16_t index, float value)
+{
+  can_frame frame{};
+  frame.can_id =
+    (kTypeParamWrite << 24) |
+    (static_cast<uint32_t>(kHostId) << 8) |
+    static_cast<uint32_t>(motor_id) |
+    CAN_EFF_FLAG;
+  frame.can_dlc = 8;
+  std::memset(frame.data, 0, 8);
+
+  // Index: little-endian uint16
+  frame.data[0] = static_cast<uint8_t>(index & 0xFF);
+  frame.data[1] = static_cast<uint8_t>((index >> 8) & 0xFF);
+
+  // Value: little-endian float
+  uint32_t val_bits;
+  std::memcpy(&val_bits, &value, sizeof(val_bits));
+  frame.data[4] = static_cast<uint8_t>(val_bits & 0xFF);
+  frame.data[5] = static_cast<uint8_t>((val_bits >> 8) & 0xFF);
+  frame.data[6] = static_cast<uint8_t>((val_bits >> 16) & 0xFF);
+  frame.data[7] = static_cast<uint8_t>((val_bits >> 24) & 0xFF);
   return frame;
 }
 
@@ -159,9 +255,9 @@ inline std::optional<MotorFeedback> decode_feedback(const can_frame & frame)
   uint16_t vel_raw = (static_cast<uint16_t>(frame.data[2]) << 8) | frame.data[3];
   uint16_t torque_raw = (static_cast<uint16_t>(frame.data[4]) << 8) | frame.data[5];
 
-  fb.position = uint_to_float(pos_raw, kPosMin, kPosMax, 16);
-  fb.velocity = uint_to_float(vel_raw, kVelMin, kVelMax, 16);
-  fb.torque = uint_to_float(torque_raw, kTorqueMin, kTorqueMax, 16);
+  fb.position = uint_to_float(pos_raw, kFbPosMin, kFbPosMax, 16);
+  fb.velocity = uint_to_float(vel_raw, kFbVelMin, kFbVelMax, 16);
+  fb.torque = uint_to_float(torque_raw, kFbTorqueMin, kFbTorqueMax, 16);
   fb.temperature = frame.data[6];
   fb.status = frame.data[7];
 
