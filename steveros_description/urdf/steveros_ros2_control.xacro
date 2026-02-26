@@ -15,16 +15,20 @@
     </hardware>
 
     <!-- ==================== RIGHT ARM ==================== -->
+    <!-- Gains from K-Scale KBot deploy.py (production deployment) -->
 
     <joint name="dof_right_shoulder_pitch_03">
       <param name="motor_id">21</param>
       <param name="motor_type">RS03</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">40.0</param>
+      <param name="kd">4.0</param>
       <command_interface name="position">
         <param name="min">-3.490658</param>
         <param name="max">1.047198</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -35,10 +39,13 @@
       <param name="motor_type">RS03</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">40.0</param>
+      <param name="kd">4.0</param>
       <command_interface name="position">
         <param name="min">-1.658063</param>
         <param name="max">0.436332</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -49,10 +56,13 @@
       <param name="motor_type">RS02</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">30.0</param>
+      <param name="kd">1.0</param>
       <command_interface name="position">
         <param name="min">-1.671886</param>
         <param name="max">1.671886</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -63,10 +73,13 @@
       <param name="motor_type">RS02</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">30.0</param>
+      <param name="kd">1.0</param>
       <command_interface name="position">
         <param name="min">0</param>
         <param name="max">2.478368</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -77,10 +90,13 @@
       <param name="motor_type">RS02</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">20.0</param>
+      <param name="kd">0.5</param>
       <command_interface name="position">
         <param name="min">-1.378810</param>
         <param name="max">1.378810</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -93,10 +109,13 @@
       <param name="motor_type">RS03</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">40.0</param>
+      <param name="kd">4.0</param>
       <command_interface name="position">
         <param name="min">-1.047198</param>
         <param name="max">3.490658</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -107,10 +126,13 @@
       <param name="motor_type">RS03</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">40.0</param>
+      <param name="kd">4.0</param>
       <command_interface name="position">
         <param name="min">-0.436332</param>
         <param name="max">1.658063</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -121,10 +143,13 @@
       <param name="motor_type">RS02</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">30.0</param>
+      <param name="kd">1.0</param>
       <command_interface name="position">
         <param name="min">-1.671886</param>
         <param name="max">1.671886</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -135,10 +160,13 @@
       <param name="motor_type">RS02</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">30.0</param>
+      <param name="kd">1.0</param>
       <command_interface name="position">
         <param name="min">-2.478368</param>
         <param name="max">0</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -149,10 +177,13 @@
       <param name="motor_type">RS02</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">20.0</param>
+      <param name="kd">0.5</param>
       <command_interface name="position">
         <param name="min">-1.378810</param>
         <param name="max">1.378810</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -165,10 +196,13 @@
       <param name="motor_type">RS04</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">85.0</param>
+      <param name="kd">5.0</param>
       <command_interface name="position">
         <param name="min">-2.216568</param>
         <param name="max">1.047198</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -179,10 +213,13 @@
       <param name="motor_type">RS03</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">40.0</param>
+      <param name="kd">4.0</param>
       <command_interface name="position">
         <param name="min">-2.268928</param>
         <param name="max">0.209440</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -193,10 +230,13 @@
       <param name="motor_type">RS03</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">40.0</param>
+      <param name="kd">4.0</param>
       <command_interface name="position">
         <param name="min">-1.570796</param>
         <param name="max">1.570796</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -207,10 +247,13 @@
       <param name="motor_type">RS04</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">85.0</param>
+      <param name="kd">5.0</param>
       <command_interface name="position">
         <param name="min">-2.705260</param>
         <param name="max">0</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -221,10 +264,13 @@
       <param name="motor_type">RS02</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">30.0</param>
+      <param name="kd">1.0</param>
       <command_interface name="position">
         <param name="min">-0.261799</param>
         <param name="max">1.134464</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -237,10 +283,13 @@
       <param name="motor_type">RS04</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">85.0</param>
+      <param name="kd">5.0</param>
       <command_interface name="position">
         <param name="min">-1.047198</param>
         <param name="max">2.216568</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -251,10 +300,13 @@
       <param name="motor_type">RS03</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">40.0</param>
+      <param name="kd">4.0</param>
       <command_interface name="position">
         <param name="min">-0.209440</param>
         <param name="max">2.268928</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -265,10 +317,13 @@
       <param name="motor_type">RS03</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">40.0</param>
+      <param name="kd">4.0</param>
       <command_interface name="position">
         <param name="min">-1.570796</param>
         <param name="max">1.570796</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -279,10 +334,13 @@
       <param name="motor_type">RS04</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">85.0</param>
+      <param name="kd">5.0</param>
       <command_interface name="position">
         <param name="min">0</param>
         <param name="max">2.705260</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -293,10 +351,13 @@
       <param name="motor_type">RS02</param>
       <param name="sign">1</param>
       <param name="zero_offset_deg">0</param>
+      <param name="kp">30.0</param>
+      <param name="kd">1.0</param>
       <command_interface name="position">
         <param name="min">-1.134464</param>
         <param name="max">0.261799</param>
       </command_interface>
+      <command_interface name="velocity"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
