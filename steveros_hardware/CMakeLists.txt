@@ -50,4 +50,53 @@ ament_export_dependencies(
   rclcpp_lifecycle
 )
 
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+
+  ament_add_gtest(test_robstride_protocol test/test_robstride_protocol.cpp)
+  target_include_directories(test_robstride_protocol PRIVATE
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  )
+
+  ament_add_gtest(test_robstride_can_driver test/test_robstride_can_driver.cpp)
+  target_include_directories(test_robstride_can_driver PRIVATE
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  )
+  target_link_libraries(test_robstride_can_driver steveros_hardware)
+
+  ament_add_gtest(test_can_bus_inspection test/test_can_bus_inspection.cpp)
+  target_include_directories(test_can_bus_inspection PRIVATE
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  )
+  target_link_libraries(test_can_bus_inspection steveros_hardware)
+
+  add_executable(test_motor21_move test/test_motor21_move.cpp)
+  target_include_directories(test_motor21_move PRIVATE
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  )
+  target_link_libraries(test_motor21_move steveros_hardware)
+
+  add_executable(test_motor21_defaults test/test_motor21_defaults.cpp)
+  target_include_directories(test_motor21_defaults PRIVATE
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  )
+  target_link_libraries(test_motor21_defaults steveros_hardware)
+
+  add_executable(test_motor21_diag test/test_motor21_diag.cpp)
+  target_include_directories(test_motor21_diag PRIVATE
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  )
+  target_link_libraries(test_motor21_diag steveros_hardware)
+
+  # Work around conda libstdc++ shadowing the system version
+  if(EXISTS "/usr/lib/x86_64-linux-gnu/libstdc++.so.6")
+    set_tests_properties(test_robstride_can_driver PROPERTIES
+      ENVIRONMENT "LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6"
+    )
+    set_tests_properties(test_can_bus_inspection PROPERTIES
+      ENVIRONMENT "LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6"
+    )
+  endif()
+endif()
+
 ament_package()

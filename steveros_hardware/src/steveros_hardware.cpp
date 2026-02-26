@@ -111,15 +111,19 @@ hardware_interface::CallbackReturn SteveROSHardware::on_init(
       joint_configs_[i].kd,
       joint_configs_[i].max_torque);
 
-    // Validate interfaces
-    if (joint.command_interfaces.size() != 1 ||
-      joint.command_interfaces[0].name != hardware_interface::HW_IF_POSITION)
+    // Validate command interfaces: position required, velocity optional
     {
-      RCLCPP_FATAL(
-        get_logger(),
-        "Joint '%s' must have exactly one position command interface.",
-        joint.name.c_str());
-      return hardware_interface::CallbackReturn::ERROR;
+      bool has_position = false;
+      for (const auto & ci : joint.command_interfaces) {
+        if (ci.name == hardware_interface::HW_IF_POSITION) has_position = true;
+      }
+      if (!has_position || joint.command_interfaces.size() > 2) {
+        RCLCPP_FATAL(
+          get_logger(),
+          "Joint '%s' must have position (and optionally velocity) command interfaces.",
+          joint.name.c_str());
+        return hardware_interface::CallbackReturn::ERROR;
+      }
     }
 
     if (joint.state_interfaces.size() != 3) {
@@ -343,6 +347,9 @@ SteveROSHardware::export_command_interfaces()
     command_interfaces.emplace_back(
       info_.joints[i].name, hardware_interface::HW_IF_POSITION,
       &joint_states_[i].command_position);
+    command_interfaces.emplace_back(
+      info_.joints[i].name, hardware_interface::HW_IF_VELOCITY,
+      &joint_states_[i].command_velocity);
   }
   return command_interfaces;
 }
@@ -418,6 +425,7 @@ hardware_interface::return_type SteveROSHardware::write(
     robstride::MitCommand cmd;
     cmd.motor_id = cfg.motor_id;
     cmd.p_des = motor_pos;
+    cmd.v_des = static_cast<float>(cfg.sign * joint_states_[i].command_velocity);
     cmd.kp = static_cast<float>(kp_scale * cfg.kp);
     cmd.kd = static_cast<float>(cfg.kd);
     cmd.max_torque = static_cast<float>(cfg.max_torque);

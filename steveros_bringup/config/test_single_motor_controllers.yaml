@@ -1,0 +1,22 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 100
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    test_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+test_controller:
+  ros__parameters:
+    joints:
+      - test_joint
+    command_interfaces:
+      - position
+      - velocity
+    state_interfaces:
+      - position
+      - velocity
+    open_loop_control: false
+    allow_integration_in_goal_trajectories: true

@@ -30,10 +30,15 @@ static constexpr uint32_t kTypeMitCommand = 1;
 static constexpr uint32_t kTypeFeedback = 2;
 static constexpr uint32_t kTypeEnable = 3;
 static constexpr uint32_t kTypeStop = 4;
+static constexpr uint32_t kTypeParamRead = 17;
 static constexpr uint32_t kTypeParamWrite = 18;
 
 // Parameter indices
 static constexpr uint16_t kParamRunMode = 0x7005;
+static constexpr uint16_t kParamLimitTorque = 0x700B;
+static constexpr uint16_t kParamCurFilterGain = 0x7014;
+static constexpr uint16_t kParamLimitSpd = 0x7017;
+static constexpr uint16_t kParamLimitCur = 0x7018;
 
 // Run modes
 static constexpr uint8_t kRunModeMotionControl = 0;
@@ -201,6 +206,25 @@ inline can_frame encode_stop_clear_fault(int motor_id)
   frame.can_dlc = 8;
   std::memset(frame.data, 0, 8);
   frame.data[0] = 1;
+  return frame;
+}
+
+/// Encode parameter read request (Type 17 frame).
+/// Data layout: index[0:1] LE, rest zeroed. Motor replies with Type 0 frame.
+inline can_frame encode_param_read(int motor_id, uint16_t index)
+{
+  can_frame frame{};
+  frame.can_id =
+    (kTypeParamRead << 24) |
+    (static_cast<uint32_t>(kHostId) << 8) |
+    static_cast<uint32_t>(motor_id) |
+    CAN_EFF_FLAG;
+  frame.can_dlc = 8;
+  std::memset(frame.data, 0, 8);
+
+  // Index: little-endian uint16
+  frame.data[0] = static_cast<uint8_t>(index & 0xFF);
+  frame.data[1] = static_cast<uint8_t>((index >> 8) & 0xFF);
   return frame;
 }
 
