@@ -41,6 +41,7 @@ struct JointState
   double effort   = std::numeric_limits<double>::quiet_NaN();
   double command_position = 0.0;
   double command_velocity = 0.0;
+  bool online = false;
 };
 
 class SteveROSHardware : public hardware_interface::SystemInterface

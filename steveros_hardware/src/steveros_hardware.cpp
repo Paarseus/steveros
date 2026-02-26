@@ -228,15 +228,21 @@ hardware_interface::CallbackReturn SteveROSHardware::on_activate(
     const auto & cfg = joint_configs_[i];
 
     if (!driver_->has_valid_feedback(cfg.motor_id)) {
-      RCLCPP_ERROR(
+      RCLCPP_WARN(
         get_logger(),
-        "No feedback from motor %d ('%s') after activation.",
+        "No feedback from motor %d ('%s') — marking offline.",
         cfg.motor_id, info_.joints[i].name.c_str());
-      return hardware_interface::CallbackReturn::ERROR;
+      joint_states_[i].online = false;
+      joint_states_[i].position = 0.0;
+      joint_states_[i].velocity = 0.0;
+      joint_states_[i].effort = 0.0;
+      joint_states_[i].command_position = 0.0;
+      continue;
     }
 
     auto fb = driver_->get_feedback(cfg.motor_id);
 
+    joint_states_[i].online = true;
     joint_states_[i].position = motor_to_joint(cfg, static_cast<double>(fb.position));
     joint_states_[i].velocity = cfg.sign * static_cast<double>(fb.velocity);
     joint_states_[i].effort = cfg.sign * static_cast<double>(fb.torque);
@@ -246,6 +252,7 @@ hardware_interface::CallbackReturn SteveROSHardware::on_activate(
   // Phase 3: Position hold — ramp begins in first write() cycle
   RCLCPP_INFO(get_logger(), "Phase 3: Starting position hold with Kp ramp...");
   for (size_t i = 0; i < joint_configs_.size(); i++) {
+    if (!joint_states_[i].online) continue;
     const auto & cfg = joint_configs_[i];
     auto params = robstride::get_motor_params(cfg.motor_type);
     float motor_pos = static_cast<float>(joint_to_motor(cfg, joint_states_[i].command_position));
@@ -267,9 +274,13 @@ hardware_interface::CallbackReturn SteveROSHardware::on_activate(
   activation_time_ = now;
   ramping_ = true;
 
+  size_t online_count = 0;
+  for (const auto & js : joint_states_) {
+    if (js.online) online_count++;
+  }
   RCLCPP_INFO(
-    get_logger(), "Activated: all motors enabled (Kp ramp over %.1fs).",
-    kp_ramp_duration_s_);
+    get_logger(), "Activated: %zu/%zu motors online (Kp ramp over %.1fs).",
+    online_count, joint_configs_.size(), kp_ramp_duration_s_);
   return hardware_interface::CallbackReturn::SUCCESS;
 }
 
@@ -387,6 +398,7 @@ hardware_interface::return_type SteveROSHardware::read(
 
   // Check for feedback timeout
   for (size_t i = 0; i < joint_configs_.size(); i++) {
+    if (!joint_states_[i].online) continue;
     double elapsed = (time - last_feedback_time_[i]).seconds();
     if (elapsed > feedback_timeout_s_) {
       RCLCPP_ERROR(
@@ -418,6 +430,7 @@ hardware_interface::return_type SteveROSHardware::write(
   }
 
   for (size_t i = 0; i < joint_configs_.size(); i++) {
+    if (!joint_states_[i].online) continue;
     const auto & cfg = joint_configs_[i];
     auto params = robstride::get_motor_params(cfg.motor_type);
     float motor_pos = static_cast<float>(joint_to_motor(cfg, joint_states_[i].command_position));
