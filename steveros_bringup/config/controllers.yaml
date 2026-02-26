@@ -27,6 +27,7 @@ right_arm_controller:
       - dof_right_wrist_00
     command_interfaces:
       - position
+      - velocity
     state_interfaces:
       - position
       - velocity
@@ -43,6 +44,7 @@ left_arm_controller:
       - dof_left_wrist_00
     command_interfaces:
       - position
+      - velocity
     state_interfaces:
       - position
       - velocity
@@ -59,6 +61,7 @@ right_leg_controller:
       - dof_right_ankle_02
     command_interfaces:
       - position
+      - velocity
     state_interfaces:
       - position
       - velocity
@@ -75,6 +78,7 @@ left_leg_controller:
       - dof_left_ankle_02
     command_interfaces:
       - position
+      - velocity
     state_interfaces:
       - position
       - velocity
