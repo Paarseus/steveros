@@ -174,6 +174,10 @@ hardware_interface::CallbackReturn SteveROSHardware::on_configure(
     return hardware_interface::CallbackReturn::ERROR;
   }
 
+  for (const auto & cfg : joint_configs_) {
+    driver_->register_motor(cfg.motor_id, cfg.motor_type);
+  }
+
   RCLCPP_INFO(get_logger(), "Configured: CAN driver open on '%s'.", can_interface_.c_str());
   return hardware_interface::CallbackReturn::SUCCESS;
 }

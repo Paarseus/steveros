@@ -40,6 +40,9 @@ public:
   /// Check if any feedback has been received for this motor.
   bool has_valid_feedback(int motor_id) const;
 
+  /// Register a motor's type so feedback can be decoded with correct ranges.
+  void register_motor(int motor_id, MotorType type);
+
   // Motor control sequences (each sends one or more frames via send_frame)
   bool clear_fault(int motor_id);
   bool set_run_mode(int motor_id, uint8_t mode);
@@ -56,6 +59,7 @@ private:
   mutable std::mutex send_mutex_;
   mutable std::mutex feedback_mutex_;
   std::unordered_map<int, MotorFeedback> feedback_cache_;
+  std::unordered_map<int, MotorType> motor_types_;
 };
 
 }  // namespace robstride

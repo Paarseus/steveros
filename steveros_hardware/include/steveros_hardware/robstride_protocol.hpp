@@ -21,13 +21,9 @@ static constexpr float kPi = 3.14159265358979323846f;
 
 static constexpr int kHostId = 0xFD;
 
-// Feedback decode ranges (SAME for all motor types)
+// Feedback decode range for position (same for all motor types)
 static constexpr float kFbPosMin = -4 * kPi;
 static constexpr float kFbPosMax = 4 * kPi;
-static constexpr float kFbVelMin = -45.0f;
-static constexpr float kFbVelMax = 45.0f;
-static constexpr float kFbTorqueMin = -12.0f;
-static constexpr float kFbTorqueMax = 12.0f;
 
 // CAN frame type IDs
 static constexpr uint32_t kTypeMitCommand = 1;
@@ -239,8 +235,10 @@ inline can_frame encode_param_write(int motor_id, uint16_t index, float value)
 // Frame decoding
 // ---------------------------------------------------------------------------
 
-/// Decode a CAN frame as motor feedback. Returns nullopt if not a Type 2 frame.
-inline std::optional<MotorFeedback> decode_feedback(const can_frame & frame)
+/// Decode a CAN frame as motor feedback using per-model velocity/torque ranges.
+/// Returns nullopt if not a Type 2 frame.
+inline std::optional<MotorFeedback> decode_feedback(
+  const can_frame & frame, const MotorParams & params)
 {
   uint32_t arb_id = frame.can_id & CAN_EFF_MASK;
   uint32_t comm_type = (arb_id >> 24) & 0x1F;
@@ -259,8 +257,8 @@ inline std::optional<MotorFeedback> decode_feedback(const can_frame & frame)
   uint16_t torque_raw = (static_cast<uint16_t>(frame.data[4]) << 8) | frame.data[5];
 
   fb.position = uint_to_float(pos_raw, kFbPosMin, kFbPosMax, 16);
-  fb.velocity = uint_to_float(vel_raw, kFbVelMin, kFbVelMax, 16);
-  fb.torque = uint_to_float(torque_raw, kFbTorqueMin, kFbTorqueMax, 16);
+  fb.velocity = uint_to_float(vel_raw, params.vel_min, params.vel_max, 16);
+  fb.torque = uint_to_float(torque_raw, params.torque_min, params.torque_max, 16);
 
   uint16_t temp_raw = (static_cast<uint16_t>(frame.data[6]) << 8) | frame.data[7];
   fb.temperature = static_cast<float>(temp_raw) / 10.0f;

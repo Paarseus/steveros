@@ -533,130 +533,139 @@ static can_frame make_feedback_frame(
 
 TEST(DecodeFeedback, RejectsNonType2Frame)
 {
+  constexpr auto kRS02 = get_motor_params(MotorType::RS02);
   can_frame frame{};
   frame.can_id = (kTypeMitCommand << 24) | CAN_EFF_FLAG;
-  auto result = decode_feedback(frame);
+  auto result = decode_feedback(frame, kRS02);
   EXPECT_FALSE(result.has_value());
 }
 
 TEST(DecodeFeedback, RejectsEnableFrame)
 {
+  constexpr auto kRS02 = get_motor_params(MotorType::RS02);
   can_frame frame{};
   frame.can_id = (kTypeEnable << 24) | CAN_EFF_FLAG;
-  EXPECT_FALSE(decode_feedback(frame).has_value());
+  EXPECT_FALSE(decode_feedback(frame, kRS02).has_value());
 }
 
 TEST(DecodeFeedback, RejectsStopFrame)
 {
+  constexpr auto kRS02 = get_motor_params(MotorType::RS02);
   can_frame frame{};
   frame.can_id = (kTypeStop << 24) | CAN_EFF_FLAG;
-  EXPECT_FALSE(decode_feedback(frame).has_value());
+  EXPECT_FALSE(decode_feedback(frame, kRS02).has_value());
 }
 
 TEST(DecodeFeedback, AcceptsType2Frame)
 {
+  constexpr auto kRS02 = get_motor_params(MotorType::RS02);
   auto frame = make_feedback_frame(1, 0x8000, 0x8000, 0x8000);
-  auto result = decode_feedback(frame);
+  auto result = decode_feedback(frame, kRS02);
   ASSERT_TRUE(result.has_value());
 }
 
 TEST(DecodeFeedback, ExtractsMotorId)
 {
-  auto frame = make_feedback_frame(21, 0x8000, 0x8000, 0x8000, 25, 0);
-  auto fb = decode_feedback(frame);
+  constexpr auto kRS02 = get_motor_params(MotorType::RS02);
+  auto frame = make_feedback_frame(21, 0x8000, 0x8000, 0x8000);
+  auto fb = decode_feedback(frame, kRS02);
   ASSERT_TRUE(fb.has_value());
   EXPECT_EQ(fb->motor_id, 21);
 }
 
 TEST(DecodeFeedback, DecodesPositionMidpoint)
 {
-  // 0x8000 in range [-12.5, 12.5] -> ~0.0
+  constexpr auto kRS02 = get_motor_params(MotorType::RS02);
   auto frame = make_feedback_frame(1, 0x8000, 0x8000, 0x8000);
-  auto fb = decode_feedback(frame);
+  auto fb = decode_feedback(frame, kRS02);
   ASSERT_TRUE(fb.has_value());
   EXPECT_NEAR(fb->position, 0.0f, 0.01f);
 }
 
 TEST(DecodeFeedback, DecodesPositionMin)
 {
-  auto frame = make_feedback_frame(1, 0x0000, 0x8000, 0x8000, 25, 0);
-  auto fb = decode_feedback(frame);
+  constexpr auto kRS02 = get_motor_params(MotorType::RS02);
+  auto frame = make_feedback_frame(1, 0x0000, 0x8000, 0x8000);
+  auto fb = decode_feedback(frame, kRS02);
   ASSERT_TRUE(fb.has_value());
   EXPECT_FLOAT_EQ(fb->position, kFbPosMin);
 }
 
 TEST(DecodeFeedback, DecodesPositionMax)
 {
-  auto frame = make_feedback_frame(1, 0xFFFF, 0x8000, 0x8000, 25, 0);
-  auto fb = decode_feedback(frame);
+  constexpr auto kRS02 = get_motor_params(MotorType::RS02);
+  auto frame = make_feedback_frame(1, 0xFFFF, 0x8000, 0x8000);
+  auto fb = decode_feedback(frame, kRS02);
   ASSERT_TRUE(fb.has_value());
   EXPECT_FLOAT_EQ(fb->position, kFbPosMax);
 }
 
 TEST(DecodeFeedback, DecodesVelocityMidpoint)
 {
+  constexpr auto kRS02 = get_motor_params(MotorType::RS02);
   auto frame = make_feedback_frame(1, 0x8000, 0x8000, 0x8000);
-  auto fb = decode_feedback(frame);
+  auto fb = decode_feedback(frame, kRS02);
   ASSERT_TRUE(fb.has_value());
   EXPECT_NEAR(fb->velocity, 0.0f, 0.01f);
 }
 
 TEST(DecodeFeedback, DecodesVelocityExtremes)
 {
+  constexpr auto kRS02 = get_motor_params(MotorType::RS02);
   auto frame_min = make_feedback_frame(1, 0x8000, 0x0000, 0x8000);
-  auto fb_min = decode_feedback(frame_min);
+  auto fb_min = decode_feedback(frame_min, kRS02);
   ASSERT_TRUE(fb_min.has_value());
-  EXPECT_FLOAT_EQ(fb_min->velocity, kFbVelMin);
+  EXPECT_FLOAT_EQ(fb_min->velocity, kRS02.vel_min);
 
   auto frame_max = make_feedback_frame(1, 0x8000, 0xFFFF, 0x8000);
-  auto fb_max = decode_feedback(frame_max);
+  auto fb_max = decode_feedback(frame_max, kRS02);
   ASSERT_TRUE(fb_max.has_value());
-  EXPECT_FLOAT_EQ(fb_max->velocity, kFbVelMax);
+  EXPECT_FLOAT_EQ(fb_max->velocity, kRS02.vel_max);
 }
 
 TEST(DecodeFeedback, DecodesTorqueExtremes)
 {
+  constexpr auto kRS02 = get_motor_params(MotorType::RS02);
   auto frame_min = make_feedback_frame(1, 0x8000, 0x8000, 0x0000);
-  auto fb_min = decode_feedback(frame_min);
+  auto fb_min = decode_feedback(frame_min, kRS02);
   ASSERT_TRUE(fb_min.has_value());
-  EXPECT_FLOAT_EQ(fb_min->torque, kFbTorqueMin);
+  EXPECT_FLOAT_EQ(fb_min->torque, kRS02.torque_min);
 
   auto frame_max = make_feedback_frame(1, 0x8000, 0x8000, 0xFFFF);
-  auto fb_max = decode_feedback(frame_max);
+  auto fb_max = decode_feedback(frame_max, kRS02);
   ASSERT_TRUE(fb_max.has_value());
-  EXPECT_FLOAT_EQ(fb_max->torque, kFbTorqueMax);
+  EXPECT_FLOAT_EQ(fb_max->torque, kRS02.torque_max);
 }
 
 TEST(DecodeFeedback, TemperatureDecoding)
 {
-  // 24.0°C encoded as 16-bit big-endian: raw = 240 = 0x00F0
+  constexpr auto kRS02 = get_motor_params(MotorType::RS02);
   auto frame = make_feedback_frame(1, 0x8000, 0x8000, 0x8000, 24.0f);
-  auto fb = decode_feedback(frame);
+  auto fb = decode_feedback(frame, kRS02);
   ASSERT_TRUE(fb.has_value());
   EXPECT_NEAR(fb->temperature, 24.0f, 0.1f);
 
-  // 55.5°C
   auto frame2 = make_feedback_frame(1, 0x8000, 0x8000, 0x8000, 55.5f);
-  auto fb2 = decode_feedback(frame2);
+  auto fb2 = decode_feedback(frame2, kRS02);
   ASSERT_TRUE(fb2.has_value());
   EXPECT_NEAR(fb2->temperature, 55.5f, 0.1f);
 }
 
 TEST(DecodeFeedback, TemperatureExtremes)
 {
+  constexpr auto kRS02 = get_motor_params(MotorType::RS02);
   auto frame0 = make_feedback_frame(1, 0x8000, 0x8000, 0x8000, 0.0f);
-  EXPECT_NEAR(decode_feedback(frame0)->temperature, 0.0f, 0.1f);
+  EXPECT_NEAR(decode_feedback(frame0, kRS02)->temperature, 0.0f, 0.1f);
 
-  // Max 16-bit: 6553.5°C (theoretical max, tests full range)
   auto frame_max = make_feedback_frame(1, 0x8000, 0x8000, 0x8000, 100.0f);
-  EXPECT_NEAR(decode_feedback(frame_max)->temperature, 100.0f, 0.1f);
+  EXPECT_NEAR(decode_feedback(frame_max, kRS02)->temperature, 100.0f, 0.1f);
 }
 
 TEST(DecodeFeedback, ExtractsFaultBitsAndMode)
 {
-  // fault_bits=0x15, mode=2 (Run)
+  constexpr auto kRS02 = get_motor_params(MotorType::RS02);
   auto frame = make_feedback_frame(21, 0x8000, 0x8000, 0x8000, 25.0f, 0x15, 2);
-  auto fb = decode_feedback(frame);
+  auto fb = decode_feedback(frame, kRS02);
   ASSERT_TRUE(fb.has_value());
   EXPECT_EQ(fb->fault_bits, 0x15);
   EXPECT_EQ(fb->mode, 2);
@@ -664,8 +673,9 @@ TEST(DecodeFeedback, ExtractsFaultBitsAndMode)
 
 TEST(DecodeFeedback, ZeroFaultAndModeWhenClean)
 {
+  constexpr auto kRS02 = get_motor_params(MotorType::RS02);
   auto frame = make_feedback_frame(21, 0x8000, 0x8000, 0x8000, 25.0f, 0, 0);
-  auto fb = decode_feedback(frame);
+  auto fb = decode_feedback(frame, kRS02);
   ASSERT_TRUE(fb.has_value());
   EXPECT_EQ(fb->fault_bits, 0);
   EXPECT_EQ(fb->mode, 0);
@@ -673,13 +683,54 @@ TEST(DecodeFeedback, ZeroFaultAndModeWhenClean)
 
 TEST(DecodeFeedback, KnownPositionRoundTrip)
 {
-  // Encode a known position via float_to_uint, build feedback frame, decode
+  constexpr auto kRS02 = get_motor_params(MotorType::RS02);
   float target_pos = 3.5f;
   uint16_t pos_raw = float_to_uint(target_pos, kFbPosMin, kFbPosMax, 16);
   auto frame = make_feedback_frame(1, pos_raw, 0x8000, 0x8000);
-  auto fb = decode_feedback(frame);
+  auto fb = decode_feedback(frame, kRS02);
   ASSERT_TRUE(fb.has_value());
   EXPECT_NEAR(fb->position, target_pos, 0.001f);
+}
+
+TEST(DecodeFeedback, RS03VelocityDecodesDifferently)
+{
+  constexpr auto kRS02 = get_motor_params(MotorType::RS02);
+  constexpr auto kRS03 = get_motor_params(MotorType::RS03);
+
+  // Encode velocity 10.0 using RS02 range (±44), decode with RS03 range (±20)
+  // The raw uint16 should decode to a different float value
+  uint16_t vel_raw = float_to_uint(10.0f, kRS02.vel_min, kRS02.vel_max, 16);
+  auto frame = make_feedback_frame(1, 0x8000, vel_raw, 0x8000);
+
+  auto fb_rs02 = decode_feedback(frame, kRS02);
+  auto fb_rs03 = decode_feedback(frame, kRS03);
+  ASSERT_TRUE(fb_rs02.has_value());
+  ASSERT_TRUE(fb_rs03.has_value());
+
+  // RS02 should decode back to ~10.0
+  EXPECT_NEAR(fb_rs02->velocity, 10.0f, 0.01f);
+  // RS03 has a narrower range, so the same raw value decodes differently
+  EXPECT_NE(fb_rs02->velocity, fb_rs03->velocity);
+}
+
+TEST(DecodeFeedback, RS04TorqueDecodesDifferently)
+{
+  constexpr auto kRS02 = get_motor_params(MotorType::RS02);
+  constexpr auto kRS04 = get_motor_params(MotorType::RS04);
+
+  // Encode torque 5.0 using RS02 range (±17), decode with RS04 range (±120)
+  uint16_t torque_raw = float_to_uint(5.0f, kRS02.torque_min, kRS02.torque_max, 16);
+  auto frame = make_feedback_frame(1, 0x8000, 0x8000, torque_raw);
+
+  auto fb_rs02 = decode_feedback(frame, kRS02);
+  auto fb_rs04 = decode_feedback(frame, kRS04);
+  ASSERT_TRUE(fb_rs02.has_value());
+  ASSERT_TRUE(fb_rs04.has_value());
+
+  // RS02 should decode back to ~5.0
+  EXPECT_NEAR(fb_rs02->torque, 5.0f, 0.01f);
+  // RS04 has a wider range, same raw value decodes to ~35.3
+  EXPECT_GT(std::abs(fb_rs04->torque), std::abs(fb_rs02->torque));
 }
 
 // ===========================================================================
@@ -700,14 +751,10 @@ TEST(Constants, FrameTypeIds)
   EXPECT_EQ(kTypeParamWrite, 18u);
 }
 
-TEST(Constants, FeedbackRanges)
+TEST(Constants, FeedbackPositionRange)
 {
   EXPECT_FLOAT_EQ(kFbPosMin, -4 * kPi);
   EXPECT_FLOAT_EQ(kFbPosMax, 4 * kPi);
-  EXPECT_FLOAT_EQ(kFbVelMin, -45.0f);
-  EXPECT_FLOAT_EQ(kFbVelMax, 45.0f);
-  EXPECT_FLOAT_EQ(kFbTorqueMin, -12.0f);
-  EXPECT_FLOAT_EQ(kFbTorqueMax, 12.0f);
 }
 
 TEST(Constants, RunModeParam)

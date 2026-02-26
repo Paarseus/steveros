@@ -71,11 +71,13 @@ static can_frame make_feedback_frame(
   float torque,
   float temperature_c = 25.0f,
   uint8_t fault_bits = 0,
-  uint8_t mode = 0)
+  uint8_t mode = 0,
+  MotorType type = MotorType::RS02)
 {
+  auto params = get_motor_params(type);
   uint16_t pos_raw = float_to_uint(position, kFbPosMin, kFbPosMax, 16);
-  uint16_t vel_raw = float_to_uint(velocity, kFbVelMin, kFbVelMax, 16);
-  uint16_t torque_raw = float_to_uint(torque, kFbTorqueMin, kFbTorqueMax, 16);
+  uint16_t vel_raw = float_to_uint(velocity, params.vel_min, params.vel_max, 16);
+  uint16_t torque_raw = float_to_uint(torque, params.torque_min, params.torque_max, 16);
 
   can_frame frame {};
   frame.can_id =
@@ -299,6 +301,7 @@ TEST_F(CanDriverTest, GetFeedbackReturnsDefaultWhenEmpty)
 TEST_F(CanDriverTest, ReceivesFeedbackFromVcan)
 {
   open_driver_and_inject_socket();
+  driver_->register_motor(21, MotorType::RS02);
 
   // Inject a Type 2 feedback frame for motor 21
   auto frame = make_feedback_frame(21, 1.5f, 0.0f, 0.0f);
@@ -313,6 +316,7 @@ TEST_F(CanDriverTest, ReceivesFeedbackFromVcan)
 TEST_F(CanDriverTest, DecodesPositionCorrectly)
 {
   open_driver_and_inject_socket();
+  driver_->register_motor(21, MotorType::RS02);
 
   float target_pos = 3.5f;
   auto frame = make_feedback_frame(21, target_pos, 0.0f, 0.0f);
@@ -328,6 +332,7 @@ TEST_F(CanDriverTest, DecodesPositionCorrectly)
 TEST_F(CanDriverTest, DecodesVelocityCorrectly)
 {
   open_driver_and_inject_socket();
+  driver_->register_motor(21, MotorType::RS02);
 
   float target_vel = -10.5f;
   auto frame = make_feedback_frame(21, 0.0f, target_vel, 0.0f);
@@ -342,6 +347,7 @@ TEST_F(CanDriverTest, DecodesVelocityCorrectly)
 TEST_F(CanDriverTest, DecodesTorqueCorrectly)
 {
   open_driver_and_inject_socket();
+  driver_->register_motor(21, MotorType::RS02);
 
   float target_torque = 5.25f;
   auto frame = make_feedback_frame(21, 0.0f, 0.0f, target_torque);
@@ -356,6 +362,7 @@ TEST_F(CanDriverTest, DecodesTorqueCorrectly)
 TEST_F(CanDriverTest, DecodesAllFieldsTogether)
 {
   open_driver_and_inject_socket();
+  driver_->register_motor(21, MotorType::RS02);
 
   float pos = -2.1f;
   float vel = 8.0f;
@@ -377,6 +384,8 @@ TEST_F(CanDriverTest, DecodesAllFieldsTogether)
 TEST_F(CanDriverTest, MultipleMotosCachedIndependently)
 {
   open_driver_and_inject_socket();
+  driver_->register_motor(21, MotorType::RS02);
+  driver_->register_motor(42, MotorType::RS02);
 
   // Inject feedback for motor 21 (position = 1.0)
   auto frame21 = make_feedback_frame(21, 1.0f, 0.0f, 0.0f);
@@ -403,6 +412,7 @@ TEST_F(CanDriverTest, MultipleMotosCachedIndependently)
 TEST_F(CanDriverTest, FeedbackUpdatesWithNewerFrame)
 {
   open_driver_and_inject_socket();
+  driver_->register_motor(21, MotorType::RS02);
 
   // First feedback: position = 1.0
   auto frame1 = make_feedback_frame(21, 1.0f, 0.0f, 0.0f);
@@ -437,6 +447,7 @@ TEST_F(CanDriverTest, FeedbackUpdatesWithNewerFrame)
 TEST_F(CanDriverTest, NonFeedbackFrameNotCached)
 {
   open_driver_and_inject_socket();
+  driver_->register_motor(21, MotorType::RS02);
 
   // Inject a Type 1 (MIT command) frame — should be filtered by the
   // driver's kernel-level CAN_RAW_FILTER (only Type 2 passes)
@@ -469,6 +480,7 @@ TEST_F(CanDriverTest, NonFeedbackFrameNotCached)
 TEST_F(CanDriverTest, UnrelatedMotorNotAffected)
 {
   open_driver_and_inject_socket();
+  driver_->register_motor(21, MotorType::RS02);
 
   // Inject feedback for motor 21 only
   auto frame = make_feedback_frame(21, 1.0f, 0.0f, 0.0f);
@@ -482,6 +494,7 @@ TEST_F(CanDriverTest, UnrelatedMotorNotAffected)
 TEST_F(CanDriverTest, FeedbackCacheClearedOnClose)
 {
   open_driver_and_inject_socket();
+  driver_->register_motor(21, MotorType::RS02);
 
   auto frame = make_feedback_frame(21, 1.0f, 0.0f, 0.0f);
   ASSERT_TRUE(inject_frame(inject_fd_, frame));
@@ -501,8 +514,10 @@ TEST_F(CanDriverTest, FeedbackCacheClearedOnClose)
 TEST_F(CanDriverTest, FeedbackAtPositionExtremes)
 {
   open_driver_and_inject_socket();
+  driver_->register_motor(21, MotorType::RS02);
+  driver_->register_motor(22, MotorType::RS02);
 
-  // Position at maximum (12.5 rad)
+  // Position at maximum
   auto frame_max = make_feedback_frame(21, kFbPosMax, 0.0f, 0.0f);
   ASSERT_TRUE(inject_frame(inject_fd_, frame_max));
   ASSERT_TRUE(wait_for_feedback(*driver_, 21));
@@ -521,6 +536,7 @@ TEST_F(CanDriverTest, FeedbackAtPositionExtremes)
 TEST_F(CanDriverTest, FeedbackWithHighTemperature)
 {
   open_driver_and_inject_socket();
+  driver_->register_motor(21, MotorType::RS02);
 
   auto frame = make_feedback_frame(21, 0.0f, 0.0f, 0.0f, 80.0f);
   ASSERT_TRUE(inject_frame(inject_fd_, frame));
@@ -547,6 +563,10 @@ TEST_F(CanDriverTest, BurstFeedbackForManyMotors)
   };
 
   for (int id : motor_ids) {
+    driver_->register_motor(id, MotorType::RS02);
+  }
+
+  for (int id : motor_ids) {
     float pos = static_cast<float>(id) * 0.1f;  // unique position per motor
     auto frame = make_feedback_frame(id, pos, 0.0f, 0.0f);
     ASSERT_TRUE(inject_frame(inject_fd_, frame));
@@ -565,4 +585,23 @@ TEST_F(CanDriverTest, BurstFeedbackForManyMotors)
     EXPECT_NEAR(fb.position, expected_pos, 0.001f)
       << "Wrong position for motor " << id;
   }
+}
+
+// ===========================================================================
+// Per-motor type decode ranges
+// ===========================================================================
+
+TEST_F(CanDriverTest, RS03MotorDecodesWithCorrectTorqueRange)
+{
+  open_driver_and_inject_socket();
+  driver_->register_motor(21, MotorType::RS03);
+
+  // Inject torque = 30.0 (within RS03 range ±60, but beyond RS02 range ±17)
+  auto frame = make_feedback_frame(
+    21, 0.0f, 0.0f, 30.0f, 25.0f, 0, 0, MotorType::RS03);
+  ASSERT_TRUE(inject_frame(inject_fd_, frame));
+  ASSERT_TRUE(wait_for_feedback(*driver_, 21));
+
+  auto fb = driver_->get_feedback(21);
+  EXPECT_NEAR(fb.torque, 30.0f, 0.1f);
 }

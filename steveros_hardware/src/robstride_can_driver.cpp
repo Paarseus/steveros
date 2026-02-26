@@ -110,6 +110,7 @@ void RobstrideCanDriver::close()
   {
     std::lock_guard<std::mutex> lock(feedback_mutex_);
     feedback_cache_.clear();
+    motor_types_.clear();
   }
 
   RCLCPP_INFO(logger(), "CAN driver closed.");
@@ -137,7 +138,21 @@ void RobstrideCanDriver::receive_loop()
       continue;
     }
 
-    auto fb = decode_feedback(frame);
+    // Extract motor_id from arb_id to look up motor type
+    uint32_t arb_id = frame.can_id & CAN_EFF_MASK;
+    int motor_id = (arb_id >> 8) & 0xFF;
+
+    MotorParams params;
+    {
+      std::lock_guard<std::mutex> lock(feedback_mutex_);
+      auto it = motor_types_.find(motor_id);
+      if (it == motor_types_.end()) {
+        continue;  // Skip frame if motor_id not registered
+      }
+      params = get_motor_params(it->second);
+    }
+
+    auto fb = decode_feedback(frame, params);
     if (!fb) {
       continue;
     }
@@ -198,6 +213,12 @@ bool RobstrideCanDriver::has_valid_feedback(int motor_id) const
 {
   std::lock_guard<std::mutex> lock(feedback_mutex_);
   return feedback_cache_.count(motor_id) > 0;
+}
+
+void RobstrideCanDriver::register_motor(int motor_id, MotorType type)
+{
+  std::lock_guard<std::mutex> lock(feedback_mutex_);
+  motor_types_[motor_id] = type;
 }
 
 // ---------------------------------------------------------------------------
