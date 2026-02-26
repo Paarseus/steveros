@@ -363,12 +363,12 @@ hardware_interface::return_type SteveROSHardware::read(
     joint_states_[i].velocity = cfg.sign * static_cast<double>(fb.velocity);
     joint_states_[i].effort = cfg.sign * static_cast<double>(fb.torque);
 
-    if (fb.status != 0) {
+    if (fb.fault_bits != 0) {
       RCLCPP_ERROR_THROTTLE(
         get_logger(), *get_clock(), 1000,
-        "Motor %d ('%s') fault: status=0x%02X, temp=%u°C",
+        "Motor %d ('%s') fault: fault_bits=0x%02X, mode=%u, temp=%.1f°C",
         fb.motor_id, info_.joints[i].name.c_str(),
-        fb.status, fb.temperature);
+        fb.fault_bits, fb.mode, fb.temperature);
     }
 
     last_feedback_time_[i] = time;

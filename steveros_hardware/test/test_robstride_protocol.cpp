@@ -500,18 +500,22 @@ TEST(EncodeParamWrite, HostIdAndMotorId)
 // decode_feedback
 // ===========================================================================
 
-// Helper: construct a Type 2 feedback frame from known values
+// Helper: construct a Type 2 feedback frame from known values.
+// fault_bits and mode are encoded into the arb ID; temperature is 16-bit big-endian.
 static can_frame make_feedback_frame(
   int motor_id,
   uint16_t pos_raw,
   uint16_t vel_raw,
   uint16_t torque_raw,
-  uint8_t temperature,
-  uint8_t status)
+  float temperature_c = 25.0f,
+  uint8_t fault_bits = 0,
+  uint8_t mode = 0)
 {
   can_frame frame{};
   frame.can_id =
     (kTypeFeedback << 24) |
+    (static_cast<uint32_t>(mode & 0x03) << 22) |
+    (static_cast<uint32_t>(fault_bits & 0x3F) << 16) |
     (static_cast<uint32_t>(motor_id) << 8) |
     CAN_EFF_FLAG;
   frame.can_dlc = 8;
@@ -521,14 +525,14 @@ static can_frame make_feedback_frame(
   frame.data[3] = static_cast<uint8_t>(vel_raw & 0xFF);
   frame.data[4] = static_cast<uint8_t>(torque_raw >> 8);
   frame.data[5] = static_cast<uint8_t>(torque_raw & 0xFF);
-  frame.data[6] = temperature;
-  frame.data[7] = status;
+  uint16_t temp_raw = static_cast<uint16_t>(temperature_c * 10.0f);
+  frame.data[6] = static_cast<uint8_t>(temp_raw >> 8);
+  frame.data[7] = static_cast<uint8_t>(temp_raw & 0xFF);
   return frame;
 }
 
 TEST(DecodeFeedback, RejectsNonType2Frame)
 {
-  // Type 1 (MIT command) -> should return nullopt
   can_frame frame{};
   frame.can_id = (kTypeMitCommand << 24) | CAN_EFF_FLAG;
   auto result = decode_feedback(frame);
@@ -551,7 +555,7 @@ TEST(DecodeFeedback, RejectsStopFrame)
 
 TEST(DecodeFeedback, AcceptsType2Frame)
 {
-  auto frame = make_feedback_frame(1, 0x8000, 0x8000, 0x8000, 25, 0);
+  auto frame = make_feedback_frame(1, 0x8000, 0x8000, 0x8000);
   auto result = decode_feedback(frame);
   ASSERT_TRUE(result.has_value());
 }
@@ -567,7 +571,7 @@ TEST(DecodeFeedback, ExtractsMotorId)
 TEST(DecodeFeedback, DecodesPositionMidpoint)
 {
   // 0x8000 in range [-12.5, 12.5] -> ~0.0
-  auto frame = make_feedback_frame(1, 0x8000, 0x8000, 0x8000, 25, 0);
+  auto frame = make_feedback_frame(1, 0x8000, 0x8000, 0x8000);
   auto fb = decode_feedback(frame);
   ASSERT_TRUE(fb.has_value());
   EXPECT_NEAR(fb->position, 0.0f, 0.01f);
@@ -591,7 +595,7 @@ TEST(DecodeFeedback, DecodesPositionMax)
 
 TEST(DecodeFeedback, DecodesVelocityMidpoint)
 {
-  auto frame = make_feedback_frame(1, 0x8000, 0x8000, 0x8000, 25, 0);
+  auto frame = make_feedback_frame(1, 0x8000, 0x8000, 0x8000);
   auto fb = decode_feedback(frame);
   ASSERT_TRUE(fb.has_value());
   EXPECT_NEAR(fb->velocity, 0.0f, 0.01f);
@@ -599,12 +603,12 @@ TEST(DecodeFeedback, DecodesVelocityMidpoint)
 
 TEST(DecodeFeedback, DecodesVelocityExtremes)
 {
-  auto frame_min = make_feedback_frame(1, 0x8000, 0x0000, 0x8000, 0, 0);
+  auto frame_min = make_feedback_frame(1, 0x8000, 0x0000, 0x8000);
   auto fb_min = decode_feedback(frame_min);
   ASSERT_TRUE(fb_min.has_value());
   EXPECT_FLOAT_EQ(fb_min->velocity, kFbVelMin);
 
-  auto frame_max = make_feedback_frame(1, 0x8000, 0xFFFF, 0x8000, 0, 0);
+  auto frame_max = make_feedback_frame(1, 0x8000, 0xFFFF, 0x8000);
   auto fb_max = decode_feedback(frame_max);
   ASSERT_TRUE(fb_max.has_value());
   EXPECT_FLOAT_EQ(fb_max->velocity, kFbVelMax);
@@ -612,33 +616,59 @@ TEST(DecodeFeedback, DecodesVelocityExtremes)
 
 TEST(DecodeFeedback, DecodesTorqueExtremes)
 {
-  auto frame_min = make_feedback_frame(1, 0x8000, 0x8000, 0x0000, 0, 0);
+  auto frame_min = make_feedback_frame(1, 0x8000, 0x8000, 0x0000);
   auto fb_min = decode_feedback(frame_min);
   ASSERT_TRUE(fb_min.has_value());
   EXPECT_FLOAT_EQ(fb_min->torque, kFbTorqueMin);
 
-  auto frame_max = make_feedback_frame(1, 0x8000, 0x8000, 0xFFFF, 0, 0);
+  auto frame_max = make_feedback_frame(1, 0x8000, 0x8000, 0xFFFF);
   auto fb_max = decode_feedback(frame_max);
   ASSERT_TRUE(fb_max.has_value());
   EXPECT_FLOAT_EQ(fb_max->torque, kFbTorqueMax);
 }
 
-TEST(DecodeFeedback, TemperatureAndStatus)
+TEST(DecodeFeedback, TemperatureDecoding)
 {
-  auto frame = make_feedback_frame(1, 0x8000, 0x8000, 0x8000, 55, 0xA3);
+  // 24.0°C encoded as 16-bit big-endian: raw = 240 = 0x00F0
+  auto frame = make_feedback_frame(1, 0x8000, 0x8000, 0x8000, 24.0f);
   auto fb = decode_feedback(frame);
   ASSERT_TRUE(fb.has_value());
-  EXPECT_EQ(fb->temperature, 55);
-  EXPECT_EQ(fb->status, 0xA3);
+  EXPECT_NEAR(fb->temperature, 24.0f, 0.1f);
+
+  // 55.5°C
+  auto frame2 = make_feedback_frame(1, 0x8000, 0x8000, 0x8000, 55.5f);
+  auto fb2 = decode_feedback(frame2);
+  ASSERT_TRUE(fb2.has_value());
+  EXPECT_NEAR(fb2->temperature, 55.5f, 0.1f);
 }
 
 TEST(DecodeFeedback, TemperatureExtremes)
 {
-  auto frame0 = make_feedback_frame(1, 0x8000, 0x8000, 0x8000, 0, 0);
-  EXPECT_EQ(decode_feedback(frame0)->temperature, 0);
+  auto frame0 = make_feedback_frame(1, 0x8000, 0x8000, 0x8000, 0.0f);
+  EXPECT_NEAR(decode_feedback(frame0)->temperature, 0.0f, 0.1f);
 
-  auto frame255 = make_feedback_frame(1, 0x8000, 0x8000, 0x8000, 255, 0);
-  EXPECT_EQ(decode_feedback(frame255)->temperature, 255);
+  // Max 16-bit: 6553.5°C (theoretical max, tests full range)
+  auto frame_max = make_feedback_frame(1, 0x8000, 0x8000, 0x8000, 100.0f);
+  EXPECT_NEAR(decode_feedback(frame_max)->temperature, 100.0f, 0.1f);
+}
+
+TEST(DecodeFeedback, ExtractsFaultBitsAndMode)
+{
+  // fault_bits=0x15, mode=2 (Run)
+  auto frame = make_feedback_frame(21, 0x8000, 0x8000, 0x8000, 25.0f, 0x15, 2);
+  auto fb = decode_feedback(frame);
+  ASSERT_TRUE(fb.has_value());
+  EXPECT_EQ(fb->fault_bits, 0x15);
+  EXPECT_EQ(fb->mode, 2);
+}
+
+TEST(DecodeFeedback, ZeroFaultAndModeWhenClean)
+{
+  auto frame = make_feedback_frame(21, 0x8000, 0x8000, 0x8000, 25.0f, 0, 0);
+  auto fb = decode_feedback(frame);
+  ASSERT_TRUE(fb.has_value());
+  EXPECT_EQ(fb->fault_bits, 0);
+  EXPECT_EQ(fb->mode, 0);
 }
 
 TEST(DecodeFeedback, KnownPositionRoundTrip)
@@ -646,7 +676,7 @@ TEST(DecodeFeedback, KnownPositionRoundTrip)
   // Encode a known position via float_to_uint, build feedback frame, decode
   float target_pos = 3.5f;
   uint16_t pos_raw = float_to_uint(target_pos, kFbPosMin, kFbPosMax, 16);
-  auto frame = make_feedback_frame(1, pos_raw, 0x8000, 0x8000, 0, 0);
+  auto frame = make_feedback_frame(1, pos_raw, 0x8000, 0x8000);
   auto fb = decode_feedback(frame);
   ASSERT_TRUE(fb.has_value());
   EXPECT_NEAR(fb->position, target_pos, 0.001f);

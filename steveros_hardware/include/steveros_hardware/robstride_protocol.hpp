@@ -120,8 +120,9 @@ struct MotorFeedback
   float position = 0.0f;
   float velocity = 0.0f;
   float torque = 0.0f;
-  uint8_t temperature = 0;
-  uint8_t status = 0;
+  float temperature = 0.0f;
+  uint8_t fault_bits = 0;  // arb ID bits 21:16
+  uint8_t mode = 0;        // arb ID bits 23:22 (0=Reset 1=Cali 2=Run)
 };
 
 // ---------------------------------------------------------------------------
@@ -249,7 +250,9 @@ inline std::optional<MotorFeedback> decode_feedback(const can_frame & frame)
   }
 
   MotorFeedback fb;
-  fb.motor_id = (arb_id >> 8) & 0xFFFF;
+  fb.motor_id = (arb_id >> 8) & 0xFF;
+  fb.fault_bits = (arb_id >> 16) & 0x3F;
+  fb.mode = (arb_id >> 22) & 0x03;
 
   uint16_t pos_raw = (static_cast<uint16_t>(frame.data[0]) << 8) | frame.data[1];
   uint16_t vel_raw = (static_cast<uint16_t>(frame.data[2]) << 8) | frame.data[3];
@@ -258,8 +261,9 @@ inline std::optional<MotorFeedback> decode_feedback(const can_frame & frame)
   fb.position = uint_to_float(pos_raw, kFbPosMin, kFbPosMax, 16);
   fb.velocity = uint_to_float(vel_raw, kFbVelMin, kFbVelMax, 16);
   fb.torque = uint_to_float(torque_raw, kFbTorqueMin, kFbTorqueMax, 16);
-  fb.temperature = frame.data[6];
-  fb.status = frame.data[7];
+
+  uint16_t temp_raw = (static_cast<uint16_t>(frame.data[6]) << 8) | frame.data[7];
+  fb.temperature = static_cast<float>(temp_raw) / 10.0f;
 
   return fb;
 }
