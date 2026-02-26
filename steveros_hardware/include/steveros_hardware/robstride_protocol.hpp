@@ -17,11 +17,13 @@ namespace robstride
 // Protocol constants (Robstride MIT Mode)
 // ---------------------------------------------------------------------------
 
+static constexpr float kPi = 3.14159265358979323846f;
+
 static constexpr int kHostId = 0xFD;
 
 // Feedback decode ranges (SAME for all motor types)
-static constexpr float kFbPosMin = -12.5f;
-static constexpr float kFbPosMax = 12.5f;
+static constexpr float kFbPosMin = -4 * kPi;
+static constexpr float kFbPosMax = 4 * kPi;
 static constexpr float kFbVelMin = -45.0f;
 static constexpr float kFbVelMax = 45.0f;
 static constexpr float kFbTorqueMin = -12.0f;
@@ -54,8 +56,6 @@ struct MotorParams
   float kp_min, kp_max;
   float kd_min, kd_max;
 };
-
-static constexpr float kPi = 3.14159265358979323846f;
 
 constexpr MotorParams get_motor_params(MotorType type)
 {
