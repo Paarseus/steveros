@@ -92,6 +92,7 @@ private:
 
   std::vector<JointConfig> joint_configs_;
   std::vector<JointState> joint_states_;
+  std::vector<double> hold_position_;
   std::unordered_map<int, size_t> motor_id_to_index_;
 
   std::vector<rclcpp::Time> last_feedback_time_;

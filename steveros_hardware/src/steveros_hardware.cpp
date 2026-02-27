@@ -51,6 +51,7 @@ hardware_interface::CallbackReturn SteveROSHardware::on_init(
 
   joint_configs_.resize(num_joints);
   joint_states_.resize(num_joints);
+  hold_position_.resize(num_joints, 0.0);
 
   for (size_t i = 0; i < num_joints; i++) {
     const auto & joint = info_.joints[i];
@@ -237,6 +238,7 @@ hardware_interface::CallbackReturn SteveROSHardware::on_activate(
       joint_states_[i].velocity = 0.0;
       joint_states_[i].effort = 0.0;
       joint_states_[i].command_position = 0.0;
+      hold_position_[i] = 0.0;
       continue;
     }
 
@@ -247,6 +249,7 @@ hardware_interface::CallbackReturn SteveROSHardware::on_activate(
     joint_states_[i].velocity = cfg.sign * static_cast<double>(fb.velocity);
     joint_states_[i].effort = cfg.sign * static_cast<double>(fb.torque);
     joint_states_[i].command_position = joint_states_[i].position;
+    hold_position_[i] = joint_states_[i].position;
   }
 
   // Phase 3: Position hold — ramp begins in first write() cycle
@@ -433,7 +436,8 @@ hardware_interface::return_type SteveROSHardware::write(
     if (!joint_states_[i].online) continue;
     const auto & cfg = joint_configs_[i];
     auto params = robstride::get_motor_params(cfg.motor_type);
-    float motor_pos = static_cast<float>(joint_to_motor(cfg, joint_states_[i].command_position));
+    double target = ramping_ ? hold_position_[i] : joint_states_[i].command_position;
+    float motor_pos = static_cast<float>(joint_to_motor(cfg, target));
 
     robstride::MitCommand cmd;
     cmd.motor_id = cfg.motor_id;
