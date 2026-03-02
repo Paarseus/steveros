@@ -1,0 +1,28 @@
+# MoveIt controller configuration
+# Maps MoveIt planning groups to ros2_control JointTrajectoryControllers
+moveit_simple_controller_manager:
+  controller_names:
+    - right_arm_controller
+    - left_arm_controller
+
+  right_arm_controller:
+    type: FollowJointTrajectory
+    action_ns: follow_joint_trajectory
+    default: true
+    joints:
+      - dof_right_shoulder_pitch_03
+      - dof_right_shoulder_roll_03
+      - dof_right_shoulder_yaw_02
+      - dof_right_elbow_02
+      - dof_right_wrist_00
+
+  left_arm_controller:
+    type: FollowJointTrajectory
+    action_ns: follow_joint_trajectory
+    default: true
+    joints:
+      - dof_left_shoulder_pitch_03
+      - dof_left_shoulder_roll_03
+      - dof_left_shoulder_yaw_02
+      - dof_left_elbow_02
+      - dof_left_wrist_00

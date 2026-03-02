@@ -1,0 +1,46 @@
+# ros2_control controllers for MoveIt demo (mock hardware).
+# Arms only — legs are not in MoveIt planning groups.
+controller_manager:
+  ros__parameters:
+    update_rate: 100
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    right_arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+    left_arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+right_arm_controller:
+  ros__parameters:
+    joints:
+      - dof_right_shoulder_pitch_03
+      - dof_right_shoulder_roll_03
+      - dof_right_shoulder_yaw_02
+      - dof_right_elbow_02
+      - dof_right_wrist_00
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    open_loop_control: false
+    allow_integration_in_goal_trajectories: true
+
+left_arm_controller:
+  ros__parameters:
+    joints:
+      - dof_left_shoulder_pitch_03
+      - dof_left_shoulder_roll_03
+      - dof_left_shoulder_yaw_02
+      - dof_left_elbow_02
+      - dof_left_wrist_00
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    open_loop_control: false
+    allow_integration_in_goal_trajectories: true
