@@ -8,9 +8,15 @@
         <param name="mock_sensor_commands">false</param>
         <param name="state_following_offset">0.0</param>
       </xacro:if>
+      <xacro:if value="$(arg sim_mujoco)">
+        <plugin>mujoco_ros2_control/MujocoSystemInterface</plugin>
+        <param name="mujoco_model">$(find steveros_mujoco)/mjcf/scene.xml</param>
+      </xacro:if>
       <xacro:unless value="$(arg use_mock_hardware)">
-        <plugin>steveros_hardware/SteveROSHardware</plugin>
-        <param name="can_interface">can0</param>
+        <xacro:unless value="$(arg sim_mujoco)">
+          <plugin>steveros_hardware/SteveROSHardware</plugin>
+          <param name="can_interface">can0</param>
+        </xacro:unless>
       </xacro:unless>
     </hardware>
 

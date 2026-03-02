@@ -1,0 +1,169 @@
+<mujoco model="steveros">
+  <compiler angle="radian" meshdir="meshes/"/>
+
+  <asset>
+    <mesh name="Torso_Side_Right.collision" file="Torso_Side_Right.collision.stl"/>
+    <mesh name="KC_C_104R_PitchHardstopDriven.collision" file="KC_C_104R_PitchHardstopDriven.collision.stl"/>
+    <mesh name="imu.collision" file="imu.collision.stl"/>
+    <mesh name="KC_C_104L_PitchHardstopDriven.collision" file="KC_C_104L_PitchHardstopDriven.collision.stl"/>
+    <mesh name="KC_D_102R_R_Hip_Yoke_Drive.collision" file="KC_D_102R_R_Hip_Yoke_Drive.collision.stl"/>
+    <mesh name="KC_D_102L_L_Hip_Yoke_Drive.collision" file="KC_D_102L_L_Hip_Yoke_Drive.collision.stl"/>
+    <mesh name="RS03_3.collision" file="RS03_3.collision.stl"/>
+    <mesh name="RS03_4.collision" file="RS03_4.collision.stl"/>
+    <mesh name="RS03_5.collision" file="RS03_5.collision.stl"/>
+    <mesh name="RS03_6.collision" file="RS03_6.collision.stl"/>
+    <mesh name="KC_C_202R.collision" file="KC_C_202R.collision.stl"/>
+    <mesh name="KC_C_202L.collision" file="KC_C_202L.collision.stl"/>
+    <mesh name="KC_D_301R_R_Femur_Lower_Drive.collision" file="KC_D_301R_R_Femur_Lower_Drive.collision.stl"/>
+    <mesh name="KC_D_301L_L_Femur_Lower_Drive.collision" file="KC_D_301L_L_Femur_Lower_Drive.collision.stl"/>
+    <mesh name="KC_C_401R_R_UpForearmDrive.collision" file="KC_C_401R_R_UpForearmDrive.collision.stl"/>
+    <mesh name="KC_C_401L_L_UpForearmDrive.collision" file="KC_C_401L_L_UpForearmDrive.collision.stl"/>
+    <mesh name="KC_D_401R_R_Shin_Drive.collision" file="KC_D_401R_R_Shin_Drive.collision.stl"/>
+    <mesh name="KC_D_401L_L_Shin_Drive.collision" file="KC_D_401L_L_Shin_Drive.collision.stl"/>
+    <mesh name="KB_C_501X_Right_Bayonet_Adapter_Hard_Stop.collision" file="KB_C_501X_Right_Bayonet_Adapter_Hard_Stop.collision.stl"/>
+    <mesh name="KB_C_501X_Left_Bayonet_Adapter_Hard_Stop.collision" file="KB_C_501X_Left_Bayonet_Adapter_Hard_Stop.collision.stl"/>
+    <mesh name="KB_D_501R_R_LEG_FOOT.collision" file="KB_D_501R_R_LEG_FOOT.collision.stl"/>
+    <mesh name="KB_D_501L_L_LEG_FOOT.collision" file="KB_D_501L_L_LEG_FOOT.collision.stl"/>
+  </asset>
+
+  <worldbody>
+    <geom name="Torso_Side_Right.collision" quat="0.707388 0 0 0.706825" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="Torso_Side_Right.collision"/>
+    <geom name="imu.collision" pos="-0.043195 0.121817 0.231518" quat="0.500198 -0.4998 0.5002 0.499801" type="mesh" rgba="0.615686 0.811765 0.929412 1" mesh="imu.collision"/>
+
+    <!-- Right Arm -->
+    <body name="KC_C_104R_PitchHardstopDriven" pos="-2.93218e-05 -0.028031 0.126021" quat="0.00028166 0.00028166 0.707107 0.707107">
+      <inertial pos="-0.004584 0.002745 -0.051222" quat="0.561791 0.425927 0.435908 0.559429" mass="0.584848" diaginertia="0.00153704 0.00143381 0.00116414"/>
+      <joint name="dof_right_shoulder_pitch_03" pos="0 0 0" axis="0 0 1" range="-2.61799 2.0944" actuatorfrcrange="-60 60"/>
+      <geom name="KC_C_104R_PitchHardstopDriven.collision" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="KC_C_104R_PitchHardstopDriven.collision"/>
+      <body name="RS03_3" pos="-0.02425 0 -0.08" quat="-1.22475e-07 -0.707107 1.22474e-07 -0.707107">
+        <inertial pos="-0.004944 0.042532 0.027432" quat="0.464288 0.52638 -0.477809 0.52826" mass="1.67651" diaginertia="0.00732476 0.00689677 0.00168847"/>
+        <joint name="dof_right_shoulder_roll_03" pos="0 0 0" axis="0 0 -1" range="-1.65806 0.383972" actuatorfrcrange="-60 60"/>
+        <geom name="RS03.collision_3" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="RS03_3.collision"/>
+        <body name="KC_C_202R" pos="-0.013 0.142 0.03025" quat="0.707107 0.707107 0 0">
+          <inertial pos="0.00391 -0.00416 -0.101316" quat="0.996812 -0.0484206 0.0568296 -0.028127" mass="0.743508" diaginertia="0.00243449 0.00222082 0.000655685"/>
+          <joint name="dof_right_shoulder_yaw_02" pos="0 0 0" axis="0 0 1" range="-1.65806 1.65806" actuatorfrcrange="-17 17"/>
+          <geom name="KC_C_202R.collision" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="KC_C_202R.collision"/>
+          <body name="KC_C_401R_R_UpForearmDrive" pos="0.0185 -0.01 -0.137" quat="0.707107 0 0.707107 0">
+            <inertial pos="0.061999 0.015867 -0.012446" quat="0.0918586 0.750195 0.184423 0.628298" mass="0.585204" diaginertia="0.00104332 0.00102242 0.000497258"/>
+            <joint name="dof_right_elbow_02" pos="0 0 0" axis="0 0 -1" range="0 2.47837" actuatorfrcrange="-17 17"/>
+            <geom name="KC_C_401R_R_UpForearmDrive.collision" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="KC_C_401R_R_UpForearmDrive.collision"/>
+            <body name="KB_C_501X_Right_Bayonet_Adapter_Hard_Stop" pos="0.103 0.01735 -0.018" quat="0.707107 0 -0.707107 0">
+              <inertial pos="0.004187 6.8e-05 -0.019905" quat="0.5 0.5 -0.5 0.5" mass="0.152198" diaginertia="8.4e-05 6.1e-05 6.1e-05"/>
+              <joint name="dof_right_wrist_00" pos="0 0 0" axis="0 0 1" range="-1.74533 1.74533" actuatorfrcrange="-14 14"/>
+              <geom name="KB_C_501X_Right_Bayonet_Adapter_Hard_Stop.collision" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="KB_C_501X_Right_Bayonet_Adapter_Hard_Stop.collision"/>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <!-- Left Arm -->
+    <body name="KC_C_104L_PitchHardstopDriven" pos="0.000163389 0.213969 0.126021" quat="0.00028166 -0.00028166 -0.707107 0.707107">
+      <inertial pos="-0.004595 -0.002745 -0.051222" quat="0.559638 0.435651 0.425667 0.56198" mass="0.584843" diaginertia="0.00153604 0.00143288 0.00116408"/>
+      <joint name="dof_left_shoulder_pitch_03" pos="0 0 0" axis="0 0 1" range="-1.0472 3.49066" actuatorfrcrange="-60 60"/>
+      <geom name="KC_C_104L_PitchHardstopDriven.collision" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="KC_C_104L_PitchHardstopDriven.collision"/>
+      <body name="RS03_6" pos="-0.02425 0 -0.08" quat="-1.22475e-07 -0.707107 -1.22474e-07 0.707107">
+        <inertial pos="0.004944 -0.042531 -0.027433" quat="0.464292 0.526394 -0.477794 0.528257" mass="1.67648" diaginertia="0.00732476 0.00689578 0.00168846"/>
+        <joint name="dof_left_shoulder_roll_03" pos="0 0 0" axis="0 0 1" range="-0.383972 1.65806" actuatorfrcrange="-60 60"/>
+        <geom name="RS03.collision_6" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="RS03_6.collision"/>
+        <body name="KC_C_202L" pos="0.013 -0.142 -0.03025" quat="0.707107 0.707107 0 0">
+          <inertial pos="0.000925 0.00601 0.113327" quat="0.998333 -0.0534044 0.0218694 -0.00102219" mass="0.579259" diaginertia="0.00153907 0.00139362 0.000458306"/>
+          <joint name="dof_left_shoulder_yaw_02" pos="0 0 0" axis="0 0 -1" range="-1.75 1.75" actuatorfrcrange="-17 17"/>
+          <geom name="KC_C_202L.collision" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="KC_C_202L.collision"/>
+          <body name="KC_C_401L_L_UpForearmDrive" pos="-0.0185 0.01 0.137" quat="-1.22475e-07 -0.707107 -1.22474e-07 0.707107">
+            <inertial pos="-0.061998 0.015867 -0.012446" quat="0.184423 0.628298 0.0918586 0.750195" mass="0.585219" diaginertia="0.00104332 0.00102242 0.000497258"/>
+            <joint name="dof_left_elbow_02" pos="0 0 0" axis="0 0 -1" range="-2.47837 0" actuatorfrcrange="-17 17"/>
+            <geom name="KC_C_401L_L_UpForearmDrive.collision" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="KC_C_401L_L_UpForearmDrive.collision"/>
+            <body name="KB_C_501X_Left_Bayonet_Adapter_Hard_Stop" pos="-0.103 0.01735 -0.018" quat="-1.22475e-07 -0.707107 -1.22474e-07 0.707107">
+              <inertial pos="-0.004187 -6.8e-05 0.019905" quat="0.5 0.5 -0.5 0.5" mass="0.152198" diaginertia="8.4e-05 6.1e-05 6.1e-05"/>
+              <joint name="dof_left_wrist_00" pos="0 0 0" axis="0 0 -1" range="-1.74533 1.74533" actuatorfrcrange="-14 14"/>
+              <geom name="KB_C_501X_Left_Bayonet_Adapter_Hard_Stop.collision" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="KB_C_501X_Left_Bayonet_Adapter_Hard_Stop.collision"/>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <!-- Right Leg -->
+    <body name="KC_D_102R_R_Hip_Yoke_Drive" pos="2.28376e-05 0.037469 -0.284479" quat="0.00028166 0.00028166 0.707107 0.707107">
+      <inertial pos="-0.005644 -0.004227 -0.038197" quat="-0.370907 0.593761 -0.057158 0.711765" mass="0.530428" diaginertia="0.0013889 0.00113209 0.000812011"/>
+      <joint name="dof_right_hip_pitch_04" pos="0 0 0" axis="0 0 1" range="-2.21657 1.0472" actuatorfrcrange="-120 120"/>
+      <geom name="KC_D_102R_R_Hip_Yoke_Drive.collision" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="KC_D_102R_R_Hip_Yoke_Drive.collision"/>
+      <body name="RS03_4" pos="-0.02825 -0.03 -0.071" quat="-1.22475e-07 0.707107 1.22474e-07 0.707107">
+        <inertial pos="-0.000249 0.058017 0.02558" quat="0.514942 0.488517 -0.485405 0.510459" mass="2.37318" diaginertia="0.0106868 0.010217 0.00323525"/>
+        <joint name="dof_right_hip_roll_03" pos="0 0 0" axis="0 0 -1" range="-2.26893 0.20944" actuatorfrcrange="-60 60"/>
+        <geom name="RS03.collision_4" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="RS03_4.collision"/>
+        <body name="KC_D_301R_R_Femur_Lower_Drive" pos="0 0.143 0.02425" quat="0.707107 -0.707107 0 0">
+          <inertial pos="-0.001014 -0.013387 0.171456" quat="0.996233 0.0730746 -0.0454845 -0.0105609" mass="2.34363" diaginertia="0.0157477 0.0143949 0.00369039"/>
+          <joint name="dof_right_hip_yaw_03" pos="0 0 0" axis="0 0 -1" range="-1.5708 1.5708" actuatorfrcrange="-60 60"/>
+          <geom name="KC_D_301R_R_Femur_Lower_Drive.collision" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="KC_D_301R_R_Femur_Lower_Drive.collision"/>
+          <body name="KC_D_401R_R_Shin_Drive" pos="0.0205 -0.021 0.212" quat="0.5 0.5 -0.5 -0.5">
+            <inertial pos="-0.024549 0.104152 0.018182" quat="0.683873 0.714108 -0.104877 0.106621" mass="1.67059" diaginertia="0.0146793 0.0146061 0.00290254"/>
+            <joint name="dof_right_knee_04" pos="0 0 0" axis="0 0 1" range="-2.70526 0" actuatorfrcrange="-120 120"/>
+            <geom name="KC_D_401R_R_Shin_Drive.collision" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="KC_D_401R_R_Shin_Drive.collision"/>
+            <body name="KB_D_501R_R_LEG_FOOT" pos="-0.03 0.29 0.0351">
+              <inertial pos="-0.014842 0.027139 -0.016105" quat="0.54657 0.48013 0.528299 0.437763" mass="0.483858" diaginertia="0.00155646 0.00145596 0.00026258"/>
+              <joint name="dof_right_ankle_02" pos="0 0 0" axis="0 0 1" range="-0.226893 1.25664" actuatorfrcrange="-17 17"/>
+              <geom name="KB_D_501R_R_LEG_FOOT.collision" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="KB_D_501R_R_LEG_FOOT.collision"/>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <!-- Left Leg -->
+    <body name="KC_D_102L_L_Hip_Yoke_Drive" pos="0.000110832 0.147969 -0.284479" quat="0.00028166 -0.00028166 -0.707107 0.707107">
+      <inertial pos="-0.005644 0.004227 -0.038197" quat="0.370907 0.593761 0.057158 0.711765" mass="0.530424" diaginertia="0.0013889 0.00113209 0.000812011"/>
+      <joint name="dof_left_hip_pitch_04" pos="0 0 0" axis="0 0 1" range="-1.0472 2.21657" actuatorfrcrange="-120 120"/>
+      <geom name="KC_D_102L_L_Hip_Yoke_Drive.collision" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="KC_D_102L_L_Hip_Yoke_Drive.collision"/>
+      <body name="RS03_5" pos="-0.02825 0.03 -0.071" quat="0.707107 0 0.707107 0">
+        <inertial pos="0.000249 0.058017 0.025578" quat="0.510459 0.485405 -0.488517 0.514942" mass="2.37324" diaginertia="0.0106868 0.010217 0.00323525"/>
+        <joint name="dof_left_hip_roll_03" pos="0 0 0" axis="0 0 -1" range="-0.20944 2.26893" actuatorfrcrange="-60 60"/>
+        <geom name="RS03.collision_5" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="RS03_5.collision"/>
+        <body name="KC_D_301L_L_Femur_Lower_Drive" pos="0 0.143 0.02425" quat="0.707107 -0.707107 0 0">
+          <inertial pos="0.001013 -0.013386 0.171458" quat="0.996228 0.0730957 0.0454672 0.0109294" mass="2.34363" diaginertia="0.0157468 0.0143949 0.00369035"/>
+          <joint name="dof_left_hip_yaw_03" pos="0 0 0" axis="0 0 -1" range="-1.5708 1.5708" actuatorfrcrange="-60 60"/>
+          <geom name="KC_D_301L_L_Femur_Lower_Drive.collision" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="KC_D_301L_L_Femur_Lower_Drive.collision"/>
+          <body name="KC_D_401L_L_Shin_Drive" pos="-0.0205 -0.021 0.212" quat="0.5 -0.5 0.5 -0.5">
+            <inertial pos="-0.02455 -0.104154 0.018183" quat="0.714108 0.683873 -0.106621 0.104877" mass="1.67054" diaginertia="0.0146793 0.0146061 0.00290254"/>
+            <joint name="dof_left_knee_04" pos="0 0 0" axis="0 0 1" range="0 2.70526" actuatorfrcrange="-120 120"/>
+            <geom name="KC_D_401L_L_Shin_Drive.collision" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="KC_D_401L_L_Shin_Drive.collision"/>
+            <body name="KB_D_501L_L_LEG_FOOT" pos="-0.03 -0.29 0.0351" quat="-1.73205e-07 -1 0 0">
+              <inertial pos="-0.014842 0.027139 0.016105" quat="0.48013 0.54657 0.437763 0.528299" mass="0.483858" diaginertia="0.00155646 0.00145596 0.00026258"/>
+              <joint name="dof_left_ankle_02" pos="0 0 0" axis="0 0 -1" range="-1.25664 0.226893" actuatorfrcrange="-17 17"/>
+              <geom name="KB_D_501L_L_LEG_FOOT.collision" type="mesh" rgba="0.262745 0.282353 0.301961 1" mesh="KB_D_501L_L_LEG_FOOT.collision"/>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <!-- Position actuators matching ros2_control kp gains -->
+  <actuator>
+    <!-- Right Arm -->
+    <position name="dof_right_shoulder_pitch_03" joint="dof_right_shoulder_pitch_03" kp="40" dampratio="1.0" ctrlrange="-2.61799 2.0944"/>
+    <position name="dof_right_shoulder_roll_03" joint="dof_right_shoulder_roll_03" kp="40" dampratio="1.0" ctrlrange="-1.65806 0.383972"/>
+    <position name="dof_right_shoulder_yaw_02" joint="dof_right_shoulder_yaw_02" kp="30" dampratio="1.0" ctrlrange="-1.65806 1.65806"/>
+    <position name="dof_right_elbow_02" joint="dof_right_elbow_02" kp="30" dampratio="1.0" ctrlrange="0 2.47837"/>
+    <position name="dof_right_wrist_00" joint="dof_right_wrist_00" kp="20" dampratio="1.0" ctrlrange="-1.74533 1.74533"/>
+    <!-- Left Arm -->
+    <position name="dof_left_shoulder_pitch_03" joint="dof_left_shoulder_pitch_03" kp="40" dampratio="1.0" ctrlrange="-1.0472 3.49066"/>
+    <position name="dof_left_shoulder_roll_03" joint="dof_left_shoulder_roll_03" kp="40" dampratio="1.0" ctrlrange="-0.383972 1.65806"/>
+    <position name="dof_left_shoulder_yaw_02" joint="dof_left_shoulder_yaw_02" kp="30" dampratio="1.0" ctrlrange="-1.75 1.75"/>
+    <position name="dof_left_elbow_02" joint="dof_left_elbow_02" kp="30" dampratio="1.0" ctrlrange="-2.47837 0"/>
+    <position name="dof_left_wrist_00" joint="dof_left_wrist_00" kp="20" dampratio="1.0" ctrlrange="-1.74533 1.74533"/>
+    <!-- Right Leg -->
+    <position name="dof_right_hip_pitch_04" joint="dof_right_hip_pitch_04" kp="85" dampratio="1.0" ctrlrange="-2.21657 1.0472"/>
+    <position name="dof_right_hip_roll_03" joint="dof_right_hip_roll_03" kp="40" dampratio="1.0" ctrlrange="-2.26893 0.20944"/>
+    <position name="dof_right_hip_yaw_03" joint="dof_right_hip_yaw_03" kp="40" dampratio="1.0" ctrlrange="-1.5708 1.5708"/>
+    <position name="dof_right_knee_04" joint="dof_right_knee_04" kp="85" dampratio="1.0" ctrlrange="-2.70526 0"/>
+    <position name="dof_right_ankle_02" joint="dof_right_ankle_02" kp="30" dampratio="1.0" ctrlrange="-0.226893 1.25664"/>
+    <!-- Left Leg -->
+    <position name="dof_left_hip_pitch_04" joint="dof_left_hip_pitch_04" kp="85" dampratio="1.0" ctrlrange="-1.0472 2.21657"/>
+    <position name="dof_left_hip_roll_03" joint="dof_left_hip_roll_03" kp="40" dampratio="1.0" ctrlrange="-0.20944 2.26893"/>
+    <position name="dof_left_hip_yaw_03" joint="dof_left_hip_yaw_03" kp="40" dampratio="1.0" ctrlrange="-1.5708 1.5708"/>
+    <position name="dof_left_knee_04" joint="dof_left_knee_04" kp="85" dampratio="1.0" ctrlrange="0 2.70526"/>
+    <position name="dof_left_ankle_02" joint="dof_left_ankle_02" kp="30" dampratio="1.0" ctrlrange="-1.25664 0.226893"/>
+  </actuator>
+</mujoco>

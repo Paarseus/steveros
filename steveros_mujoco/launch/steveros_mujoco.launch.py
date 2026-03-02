@@ -1,4 +1,4 @@
-"""Launch KBot 20-DOF humanoid with ros2_control, controllers, and optional RViz."""
+"""Launch SteveROS humanoid in MuJoCo simulation with ros2_control."""
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, RegisterEventHandler
@@ -10,15 +10,13 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    use_mock_hardware = LaunchConfiguration("use_mock_hardware")
-    sim_mujoco = LaunchConfiguration("sim_mujoco")
     use_rviz = LaunchConfiguration("use_rviz")
 
     urdf_path = PathJoinSubstitution(
         [FindPackageShare("steveros_description"), "urdf", "steveros.urdf.xacro"]
     )
     controllers_config = PathJoinSubstitution(
-        [FindPackageShare("steveros_bringup"), "config", "controllers.yaml"]
+        [FindPackageShare("steveros_mujoco"), "config", "controllers.yaml"]
     )
     rviz_config = PathJoinSubstitution(
         [FindPackageShare("steveros_description"), "rviz", "steveros.rviz"]
@@ -26,16 +24,17 @@ def generate_launch_description():
 
     robot_description = Command([
         "xacro ", urdf_path,
-        " use_mock_hardware:=", use_mock_hardware,
-        " sim_mujoco:=", sim_mujoco,
+        " use_mock_hardware:=false",
+        " sim_mujoco:=true",
     ])
 
-    control_node = Node(
-        package="controller_manager",
+    mujoco_control_node = Node(
+        package="mujoco_ros2_control",
         executable="ros2_control_node",
         parameters=[
             {"robot_description": robot_description},
             controllers_config,
+            {"use_sim_time": True},
         ],
         output="both",
     )
@@ -43,41 +42,52 @@ def generate_launch_description():
     robot_state_publisher = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
-        parameters=[{"robot_description": robot_description}],
+        parameters=[
+            {"robot_description": robot_description},
+            {"use_sim_time": True},
+        ],
         output="both",
     )
 
     joint_state_broadcaster_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager"],
+        arguments=[
+            "joint_state_broadcaster",
+            "--controller-manager", "/controller_manager",
+            "--controller-manager-timeout", "30",
+        ],
+        parameters=[{"use_sim_time": True}],
     )
 
     right_arm_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
         arguments=["right_arm_controller", "--controller-manager", "/controller_manager"],
+        parameters=[{"use_sim_time": True}],
     )
 
     left_arm_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
         arguments=["left_arm_controller", "--controller-manager", "/controller_manager"],
+        parameters=[{"use_sim_time": True}],
     )
 
     right_leg_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
         arguments=["right_leg_controller", "--controller-manager", "/controller_manager"],
+        parameters=[{"use_sim_time": True}],
     )
 
     left_leg_controller_spawner = Node(
         package="controller_manager",
         executable="spawner",
         arguments=["left_leg_controller", "--controller-manager", "/controller_manager"],
+        parameters=[{"use_sim_time": True}],
     )
 
-    # Spawn all limb controllers after joint_state_broadcaster is up
     delay_controllers = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=joint_state_broadcaster_spawner,
@@ -93,28 +103,19 @@ def generate_launch_description():
     rviz_node = Node(
         package="rviz2",
         executable="rviz2",
-        arguments=["-d", rviz_config],
+        arguments=["-d", rviz_config, "-f", "floating_base_link"],
+        parameters=[{"use_sim_time": True}],
         condition=IfCondition(use_rviz),
     )
 
     return LaunchDescription(
         [
             DeclareLaunchArgument(
-                "use_mock_hardware",
-                default_value="true",
-                description="Use mock hardware (no CAN bus needed)",
-            ),
-            DeclareLaunchArgument(
-                "sim_mujoco",
-                default_value="false",
-                description="Use MuJoCo simulation",
-            ),
-            DeclareLaunchArgument(
                 "use_rviz",
                 default_value="true",
                 description="Launch RViz",
             ),
-            control_node,
+            mujoco_control_node,
             robot_state_publisher,
             joint_state_broadcaster_spawner,
             delay_controllers,
