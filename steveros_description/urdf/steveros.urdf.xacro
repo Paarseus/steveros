@@ -2,6 +2,7 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="steveros">
   <xacro:arg name="use_mock_hardware" default="true"/>
   <xacro:arg name="sim_mujoco" default="false"/>
+  <xacro:arg name="mujoco_scene" default="scene_suspended.xml"/>
 
   <!-- Official KBot 20-DOF model from kscalelabs/kbot-models -->
   <xacro:include filename="$(find steveros_description)/urdf/kbot.urdf"/>

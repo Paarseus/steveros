@@ -83,7 +83,6 @@
 
   <worldbody>
     <body name="floating_base_link" pos="0.00000000 0.00000000 1.00947904" quat="1 0 0 0" childclass="robot">
-      <freejoint name="floating_base" />
       <geom name="floating_base_link_visual" pos="0 0 0" quat="0.7073882691671998 0.0 0.0 0.706825181105366" material="floating_base_link_material" type="sphere" size="0.01" class="visual" />
       <body name="Torso_Side_Right" pos="0 0 0" quat="0.7073882691671998 0.0 0.0 0.706825181105366">
         <inertial pos="0.093172 -0.000957 -0.063239" quat="1.0 0.0 0.0 0.0" mass="13.516427" diaginertia="0.486657 0.51314 0.059226" />
@@ -228,7 +227,7 @@
        Default kp/kv/forcerange from class defaults above (metadata.json sim gains).
        Per-joint overrides where metadata differs from class default. -->
   <actuator>
-    <!-- Right arm — kp/kv from class defaults (motor_03: 100/4, motor_02: 40/2, motor_00: 20/2) -->
+    <!-- Right arm -->
     <position name="dof_right_shoulder_pitch_03_ctrl" joint="dof_right_shoulder_pitch_03" class="motor_03" ctrlrange="-2.617994 2.094395" />
     <position name="dof_right_shoulder_roll_03_ctrl" joint="dof_right_shoulder_roll_03" class="motor_03" ctrlrange="-1.658063 0.383972" />
     <position name="dof_right_shoulder_yaw_02_ctrl" joint="dof_right_shoulder_yaw_02" class="motor_02" ctrlrange="-1.658063 1.658063" />
@@ -240,7 +239,7 @@
     <position name="dof_left_shoulder_yaw_02_ctrl" joint="dof_left_shoulder_yaw_02" class="motor_02" ctrlrange="-1.658063 1.658063" />
     <position name="dof_left_elbow_02_ctrl" joint="dof_left_elbow_02" class="motor_02" ctrlrange="-2.478368 0" />
     <position name="dof_left_wrist_00_ctrl" joint="dof_left_wrist_00" class="motor_00" ctrlrange="-1.745329 1.745329" />
-    <!-- Right leg — hip roll kp=200/kv=8 overrides motor_03 default, ankle kv=8 overrides motor_02 default -->
+    <!-- Right leg -->
     <position name="dof_right_hip_pitch_04_ctrl" joint="dof_right_hip_pitch_04" class="motor_04" ctrlrange="-2.216568 1.047198" />
     <position name="dof_right_hip_roll_03_ctrl" joint="dof_right_hip_roll_03" class="motor_03" ctrlrange="-2.268928 0.209440" kp="200" kv="8" />
     <position name="dof_right_hip_yaw_03_ctrl" joint="dof_right_hip_yaw_03" class="motor_03" ctrlrange="-1.570796 1.570796" />

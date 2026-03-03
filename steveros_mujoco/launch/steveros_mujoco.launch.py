@@ -1,34 +1,45 @@
 """Launch SteveROS humanoid in MuJoCo simulation with ros2_control."""
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, RegisterEventHandler
+from launch.actions import DeclareLaunchArgument, RegisterEventHandler, Shutdown
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
-from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import (
+    Command,
+    LaunchConfiguration,
+    PathJoinSubstitution,
+    PythonExpression,
+)
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
     use_rviz = LaunchConfiguration("use_rviz")
+    suspended = LaunchConfiguration("suspended")
 
     urdf_path = PathJoinSubstitution(
         [FindPackageShare("steveros_description"), "urdf", "steveros.urdf.xacro"]
     )
     controllers_config = PathJoinSubstitution(
-        [FindPackageShare("steveros_mujoco"), "config", "controllers.yaml"]
+        [FindPackageShare("steveros_mujoco"), "config", "controllers_sim.yaml"]
     )
     rviz_config = PathJoinSubstitution(
         [FindPackageShare("steveros_description"), "rviz", "steveros.rviz"]
     )
 
+    mujoco_scene = PythonExpression([
+        "'scene_suspended.xml' if '", suspended, "' == 'true' else 'scene.xml'",
+    ])
+
     robot_description = Command([
         "xacro ", urdf_path,
         " use_mock_hardware:=false",
         " sim_mujoco:=true",
+        " mujoco_scene:=", mujoco_scene,
     ])
 
-    mujoco_control_node = Node(
+    ros2_control_node = Node(
         package="mujoco_ros2_control",
         executable="ros2_control_node",
         parameters=[
@@ -37,6 +48,7 @@ def generate_launch_description():
             {"use_sim_time": True},
         ],
         output="both",
+        on_exit=Shutdown(),
     )
 
     robot_state_publisher = Node(
@@ -115,7 +127,12 @@ def generate_launch_description():
                 default_value="true",
                 description="Launch RViz",
             ),
-            mujoco_control_node,
+            DeclareLaunchArgument(
+                "suspended",
+                default_value="true",
+                description="Suspend robot in air (no free joint / ground contact)",
+            ),
+            ros2_control_node,
             robot_state_publisher,
             joint_state_broadcaster_spawner,
             delay_controllers,

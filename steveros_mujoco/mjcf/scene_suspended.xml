@@ -1,5 +1,5 @@
 <mujoco model="steveros_scene">
-  <include file="steveros_robot.xml"/>
+  <include file="steveros_robot_suspended.xml"/>
 
   <option gravity="0 0 -9.81" timestep="0.002" integrator="implicitfast"/>
 

@@ -18,6 +18,9 @@ log/
 __pycache__/
 *.pyc
 
+# Mesh symlinks (created for MuJoCo development)
+steveros_mujoco/mjcf/meshes
+
 # LaTeX build artifacts
 *.aux
 *.log
