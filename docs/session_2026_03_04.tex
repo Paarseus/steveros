@@ -1,0 +1,253 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+
+\pagestyle{fancy}
+\fancyhead[L]{SteveROS Session Log}
+\fancyhead[R]{2026-03-04}
+
+\definecolor{codebg}{RGB}{245,245,245}
+\definecolor{codeframe}{RGB}{200,200,200}
+\lstset{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  columns=fullflexible,
+  language=C++,
+}
+
+\title{SteveROS Development Session Log\\[0.5em]
+\large MoveIt2 Integration, Hardware Driver Fixes, and Collision Configuration}
+\author{SteveROS Team}
+\date{March 4, 2026}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+% ============================================================================
+\section{Session Overview}
+
+This document covers work done on the SteveROS humanoid robot platform on March 4, 2026.
+The session focused on bringing up MoveIt2 motion planning with real Robstride motors
+over CAN bus, diagnosing and fixing joint angle reporting issues, resolving collision
+configuration problems, and investigating motor fault conditions during trajectory execution.
+
+\subsection{System Configuration}
+\begin{itemize}
+  \item \textbf{OS:} Ubuntu 24.04, Linux 6.17
+  \item \textbf{ROS Distribution:} ROS 2 Jazzy
+  \item \textbf{Robot:} 20-DOF humanoid (kbot v2) with Robstride RS02/RS03/RS04 motors
+  \item \textbf{Communication:} CAN bus (\texttt{can0}) at 1\,Mbps
+  \item \textbf{Motors online:} 10/20 (both arms; legs not connected)
+\end{itemize}
+
+% ============================================================================
+\section{Problem 1: MoveIt START\_STATE\_INVALID}
+
+\subsection{Symptom}
+When launching MoveIt2 with real hardware, motion planning immediately failed with:
+
+\begin{lstlisting}[language={}]
+CheckStartStateBounds: Joint 'dof_left_wrist_00' outside bounds
+  by 6.02135 rad. Range: [-1.74533, 1.74533]
+CheckStartStateBounds: Joint 'dof_right_shoulder_yaw_02' outside
+  bounds by -1.68943 rad. Range: [-1.65806, 1.65806]
+\end{lstlisting}
+
+MoveIt rejected the robot's current joint state as invalid before any planning could begin.
+
+\subsection{Root Cause Analysis}
+The hardware driver's \texttt{motor\_to\_joint()} function converts raw motor encoder
+readings to joint-space angles:
+
+\begin{lstlisting}
+// Original code (steveros_hardware.cpp)
+double SteveROSHardware::motor_to_joint(
+    const JointConfig & cfg, double motor_rad) const
+{
+  return cfg.sign * (motor_rad - cfg.zero_offset_rad);
+}
+\end{lstlisting}
+
+The Robstride motor encoders report positions in the range $[-4\pi, 4\pi]$ (16-bit encoding).
+When a motor is near the zero-offset boundary, the subtraction
+\texttt{motor\_rad - zero\_offset\_rad} can produce values like $+6.02$\,rad or
+$-1.69$\,rad---essentially $\pm 2\pi$ off from the true joint angle. These values
+exceed the URDF joint limits, causing MoveIt to reject the start state.
+
+\textbf{Key insight from testing:} The robot does not always start at the home position.
+The arms can be in arbitrary poses when powered on, so the fix must handle any starting
+configuration, not just recalibrate zero offsets.
+
+\subsection{Fix Applied}
+
+Added angle wrapping using \texttt{std::remainder()} to normalize the output to $[-\pi, \pi]$:
+
+\begin{lstlisting}
+// Fixed code (steveros_hardware.cpp)
+double SteveROSHardware::motor_to_joint(
+    const JointConfig & cfg, double motor_rad) const
+{
+  // Wrap to [-pi, pi] so joints near the zero-offset
+  // boundary don't jump to +/-2pi.
+  return std::remainder(
+    cfg.sign * (motor_rad - cfg.zero_offset_rad),
+    2.0 * M_PI);
+}
+\end{lstlisting}
+
+\texttt{std::remainder(x, 2\pi)} returns the IEEE remainder, which is always in
+$[-\pi, \pi]$. This ensures that regardless of how many full rotations the encoder
+has accumulated, the reported joint angle stays within the physically meaningful range.
+
+\subsection{File Modified}
+\begin{itemize}
+  \item \texttt{steveros\_hardware/src/steveros\_hardware.cpp} --- \texttt{motor\_to\_joint()} function
+\end{itemize}
+
+% ============================================================================
+\section{Problem 2: Right Arm Collision False Positive}
+
+\subsection{Symptom}
+After fixing the start state bounds issue, the left arm could plan and execute
+trajectories, but the right arm failed with:
+
+\begin{lstlisting}[language={}]
+CheckStartStateCollision failed: 1 contact(s) detected:
+  KB_C_501X_Right_Bayonet_Adapter_Hard_Stop - RS03_4
+\end{lstlisting}
+
+MoveIt detected a collision between the right arm tip link
+(\texttt{KB\_C\_501X\_Right\_Bayonet\_Adapter\_Hard\_Stop}) and the right hip motor link
+(\texttt{RS03\_4}) at the current pose, preventing any planning for the right arm.
+
+\subsection{Root Cause}
+The SRDF (Semantic Robot Description Format) file defines which link pairs should
+skip collision checking. The pair of the right arm end-effector and right hip motor
+was missing from the \texttt{disable\_collisions} list. These links are on entirely
+different kinematic chains (arm vs.\ leg) and are physically far apart in normal
+operation, but their collision meshes can overlap at certain arm poses.
+
+\subsection{Fix Applied}
+Added \texttt{disable\_collisions} entries for arm tip and forearm links versus all
+hip/leg links:
+
+\begin{lstlisting}[language=XML]
+<!-- Arm tips vs leg links -->
+<disable_collisions
+  link1="KB_C_501X_Right_Bayonet_Adapter_Hard_Stop"
+  link2="RS03_4" reason="Never"/>
+<disable_collisions
+  link1="KB_C_501X_Right_Bayonet_Adapter_Hard_Stop"
+  link2="RS03_5" reason="Never"/>
+<!-- ... and similar for left arm, forearm links,
+     and hip yoke links (16 entries total) -->
+\end{lstlisting}
+
+A total of 16 new collision pairs were disabled, covering both arms' tip and forearm
+links against both legs' hip and upper leg links.
+
+\subsection{File Modified}
+\begin{itemize}
+  \item \texttt{steveros\_moveit\_config/config/steveros.srdf} --- added 16 \texttt{disable\_collisions} entries
+\end{itemize}
+
+% ============================================================================
+\section{Problem 3: Motor Faults During Trajectory Execution}
+
+\subsection{Symptom}
+After successfully planning and sending a trajectory to both arms, the shoulder motors
+entered a fault state and stopped responding:
+
+\begin{lstlisting}[language={}]
+Motor 21 ('dof_right_shoulder_pitch_03') fault:
+  fault_bits=0x01, mode=0, temp=38.0C
+Motor 22 ('dof_right_shoulder_roll_03') fault:
+  fault_bits=0x01, mode=0, temp=41.0C
+Motor 11 ('dof_left_shoulder_pitch_03') fault:
+  fault_bits=0x01, mode=0, temp=38.0C
+Motor 12 ('dof_left_shoulder_roll_03') fault:
+  fault_bits=0x01, mode=0, temp=41.0C
+\end{lstlisting}
+
+MoveIt reported trajectory execution timed out, and the motors remained in fault state.
+
+\subsection{Analysis}
+\begin{itemize}
+  \item \texttt{fault\_bits=0x01}: Bit 0 of the Robstride fault register (overcurrent/stall protection)
+  \item \texttt{mode=0}: Motor in \textbf{Reset} mode (not Run mode), meaning the motor
+    firmware tripped the motor out of active control
+  \item Temperatures were normal (38--41\textdegree C), ruling out thermal shutdown
+  \item The faults began immediately after MoveIt sent the trajectory, suggesting the
+    commanded motion was too aggressive for the shoulder motors (RS03, the largest actuators)
+  \item The trajectory execution upper bound was $\sim$9.7\,s for the first attempt and
+    $\sim$17.2\,s for the second, both of which timed out
+\end{itemize}
+
+\subsection{Current Status}
+This issue remains under investigation. The hardware driver currently logs faults but
+does not attempt automatic recovery (clear fault + re-enable). Potential solutions include:
+
+\begin{enumerate}
+  \item Reducing MoveIt trajectory velocity/acceleration scaling for shoulder joints
+  \item Adding automatic fault recovery in the hardware driver's \texttt{read()} loop
+  \item Tuning the motor PD gains (\texttt{kp}, \texttt{kd}) for the shoulder joints
+  \item Investigating whether the trajectory waypoints cause sudden large torque demands
+\end{enumerate}
+
+% ============================================================================
+\section{Additional Change: MoveIt Home State}
+
+Added a \texttt{home} group state for the \texttt{both\_arms} planning group in the SRDF,
+with all 10 arm joints set to 0. This makes ``home'' available in the MoveIt RViz
+MotionPlanning plugin's Goal State dropdown for all three planning groups
+(\texttt{right\_arm}, \texttt{left\_arm}, \texttt{both\_arms}).
+
+\subsection{File Modified}
+\begin{itemize}
+  \item \texttt{steveros\_moveit\_config/config/steveros.srdf} --- added \texttt{both\_arms} home state
+\end{itemize}
+
+% ============================================================================
+\section{Summary of All Changes}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{File} & \textbf{Change} & \textbf{Problem Solved} \\
+\midrule
+\texttt{steveros\_hardware/src/} & Added \texttt{std::remainder()} & START\_STATE\_INVALID \\
+\texttt{steveros\_hardware.cpp} & wrapping in \texttt{motor\_to\_joint()} & (joint angles $\pm 2\pi$ off) \\
+\midrule
+\texttt{steveros\_moveit\_config/} & Added 16 collision disable & Right arm planning blocked \\
+\texttt{config/steveros.srdf} & entries for arm vs.\ leg links & by false collision \\
+\midrule
+\texttt{steveros\_moveit\_config/} & Added \texttt{both\_arms} home & Home state not selectable \\
+\texttt{config/steveros.srdf} & group state & for both\_arms group \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================================
+\section{Open Issues}
+
+\begin{enumerate}
+  \item \textbf{Shoulder motor faults:} Motors 11, 12, 21, 22 fault with \texttt{0x01}
+    during trajectory execution. Needs trajectory tuning or fault recovery logic.
+  \item \textbf{Leg motors offline:} Only 10/20 motors come online (arms only).
+    Leg CAN connections not verified.
+  \item \textbf{Trajectory timeout:} MoveIt's allowed execution duration may need
+    adjustment for large motions, or trajectory velocity scaling should be reduced.
+\end{enumerate}
+
+\end{document}

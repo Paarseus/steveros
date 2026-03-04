@@ -459,7 +459,8 @@ hardware_interface::return_type SteveROSHardware::write(
 
 double SteveROSHardware::motor_to_joint(const JointConfig & cfg, double motor_rad) const
 {
-  return cfg.sign * (motor_rad - cfg.zero_offset_rad);
+  // Wrap to [-π, π] so joints near the zero-offset boundary don't jump to ±2π.
+  return std::remainder(cfg.sign * (motor_rad - cfg.zero_offset_rad), 2.0 * M_PI);
 }
 
 double SteveROSHardware::joint_to_motor(const JointConfig & cfg, double joint_rad) const

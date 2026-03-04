@@ -34,6 +34,18 @@
     <joint name="dof_left_elbow_02" value="0"/>
     <joint name="dof_left_wrist_00" value="0"/>
   </group_state>
+  <group_state name="home" group="both_arms">
+    <joint name="dof_right_shoulder_pitch_03" value="0"/>
+    <joint name="dof_right_shoulder_roll_03" value="0"/>
+    <joint name="dof_right_shoulder_yaw_02" value="0"/>
+    <joint name="dof_right_elbow_02" value="0"/>
+    <joint name="dof_right_wrist_00" value="0"/>
+    <joint name="dof_left_shoulder_pitch_03" value="0"/>
+    <joint name="dof_left_shoulder_roll_03" value="0"/>
+    <joint name="dof_left_shoulder_yaw_02" value="0"/>
+    <joint name="dof_left_elbow_02" value="0"/>
+    <joint name="dof_left_wrist_00" value="0"/>
+  </group_state>
 
   <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links.-->
   <!-- Adjacent links (always in collision in default pose) -->
@@ -115,4 +127,24 @@
   <disable_collisions link1="KC_D_301L_L_Femur_Lower_Drive" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Never"/>
   <disable_collisions link1="KC_D_301R_R_Femur_Lower_Drive" link2="RS03_5" reason="Never"/>
   <disable_collisions link1="KC_D_301L_L_Femur_Lower_Drive" link2="RS03_4" reason="Never"/>
+
+  <!-- Arm tips vs leg links: far apart in normal operation -->
+  <disable_collisions link1="KB_C_501X_Right_Bayonet_Adapter_Hard_Stop" link2="RS03_4" reason="Never"/>
+  <disable_collisions link1="KB_C_501X_Right_Bayonet_Adapter_Hard_Stop" link2="RS03_5" reason="Never"/>
+  <disable_collisions link1="KB_C_501X_Right_Bayonet_Adapter_Hard_Stop" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="KB_C_501X_Right_Bayonet_Adapter_Hard_Stop" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="KB_C_501X_Left_Bayonet_Adapter_Hard_Stop" link2="RS03_4" reason="Never"/>
+  <disable_collisions link1="KB_C_501X_Left_Bayonet_Adapter_Hard_Stop" link2="RS03_5" reason="Never"/>
+  <disable_collisions link1="KB_C_501X_Left_Bayonet_Adapter_Hard_Stop" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="KB_C_501X_Left_Bayonet_Adapter_Hard_Stop" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
+
+  <!-- Arm forearm vs leg links -->
+  <disable_collisions link1="KC_C_401R_R_UpForearmDrive" link2="RS03_4" reason="Never"/>
+  <disable_collisions link1="KC_C_401R_R_UpForearmDrive" link2="RS03_5" reason="Never"/>
+  <disable_collisions link1="KC_C_401R_R_UpForearmDrive" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="KC_C_401R_R_UpForearmDrive" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="KC_C_401L_L_UpForearmDrive" link2="RS03_4" reason="Never"/>
+  <disable_collisions link1="KC_C_401L_L_UpForearmDrive" link2="RS03_5" reason="Never"/>
+  <disable_collisions link1="KC_C_401L_L_UpForearmDrive" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="KC_C_401L_L_UpForearmDrive" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
 </robot>
