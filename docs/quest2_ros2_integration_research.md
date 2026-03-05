@@ -24,7 +24,86 @@ significantly better spatial accuracy and an immersive visualization layer.
 
 ## Top Repositories & Projects Evaluated
 
-### 1. unity_ros_teleoperation (ETH Zurich / Legged Robotics) -- RECOMMENDED
+### 1. teleop_xr (qrafty-ai) -- RECOMMENDED (EASIEST + MOST CAPABLE)
+
+| Field | Details |
+|-------|---------|
+| **Repo** | https://github.com/qrafty-ai/teleop_xr |
+| **Stars** | 30 |
+| **License** | Apache-2.0 |
+| **ROS2 Support** | Yes (native, distro-agnostic) |
+| **Quest 2 Compatible** | Yes (WebXR -- just open URL in Quest browser) |
+| **Last Updated** | February 2026 (v1.2.3) |
+| **Install** | `pip install teleop-xr` |
+| **Ease of Setup** | VERY EASY |
+
+**Why it's the #1 pick for SteveROS:**
+- **ZERO installation on Quest** -- just open a URL in the Quest browser
+- **WebRTC video streaming** -- low-latency camera feeds directly in headset
+- **Passthrough AR mode** -- toggle between VR and AR
+- **Whole-body IK teleoperation** -- perfect for a 20-DOF humanoid
+- **Bimanual support** -- controls both arms simultaneously (Unitree H1, Franka, etc.)
+- **Real-time 3D robot visualization** -- digital twin in the browser
+- **Collision-aware IK** via Pyroki (differentiable solver)
+- Built on FastAPI (Python) + TypeScript/WebXR frontend
+- Also supports dora-rs interface besides ROS2
+
+**Setup (3 commands):**
+```bash
+pip install teleop-xr
+# Install IK deps (pyroki, ballpark) from GitHub
+python -m teleop_xr.demo
+```
+Then open the displayed URL on Quest 2 browser. Done.
+
+**Compatibility with SteveROS:**
+- Python 3.10+ (matches ROS2 Jazzy)
+- Publishes target poses to ROS2 topics
+- IK solver can load your KBot URDF directly
+- Can integrate with MoveIt2 servo for real-time control
+- No Unity, no APK sideloading, no Android build pipeline
+
+---
+
+### 2. SpesRobotics/teleop -- SIMPLEST OPTION
+
+| Field | Details |
+|-------|---------|
+| **Repo** | https://github.com/SpesRobotics/teleop |
+| **Stars** | 182 (most popular) |
+| **License** | Apache-2.0 |
+| **ROS2 Support** | Yes (native) |
+| **Quest 2 Compatible** | Yes (WebXR -- just open URL in Quest browser) |
+| **Last Updated** | December 2025 (v0.1.4) |
+| **Install** | `pip install teleop` |
+| **Ease of Setup** | EASIEST |
+
+**Why it's great:**
+- **The original WebXR teleop** that teleop_xr is forked from
+- `pip install teleop` then `python -m teleop.ros2` -- that's it
+- 90fps controller tracking from VR headset
+- Built-in IK solver (Pinocchio-based) with velocity/acceleration limits
+- ROS2 mode publishes target poses and subscribes to current positions
+- More battle-tested than teleop_xr (182 stars vs 30)
+
+**ROS2 usage:**
+```bash
+pip install teleop
+# Simple pose publishing:
+python -m teleop.ros2
+# With IK servoing:
+python -m teleop.ros2_ik --joint-names joint1 joint2 ... --ee-link end_effector
+```
+
+**Limitations vs teleop_xr:**
+- No WebRTC video streaming
+- No passthrough AR mode
+- No 3D robot visualization in browser
+- Single-arm only (no bimanual)
+
+---
+
+### 3. unity_ros_teleoperation (ETH Zurich / Legged Robotics) -- BEST FULL VR
 
 | Field | Details |
 |-------|---------|
@@ -60,7 +139,7 @@ significantly better spatial accuracy and an immersive visualization layer.
 
 ---
 
-### 2. PickNikRobotics/meta_quest_teleoperation -- STRONG RUNNER-UP
+### 4. PickNikRobotics/meta_quest_teleoperation -- MOVEIT-SPECIFIC
 
 | Field | Details |
 |-------|---------|
@@ -99,7 +178,7 @@ significantly better spatial accuracy and an immersive visualization layer.
 
 ---
 
-### 3. Hand Tracking Streamer (HTS) -- BEST FOR CONTROLLER-FREE TRACKING
+### 5. Hand Tracking Streamer (HTS) -- BEST FOR CONTROLLER-FREE TRACKING
 
 | Field | Details |
 |-------|---------|
@@ -133,7 +212,7 @@ significantly better spatial accuracy and an immersive visualization layer.
 
 ---
 
-### 4. Quest2ROS (KTH Royal Institute of Technology) -- ROS1 ONLY
+### 6. Quest2ROS (KTH Royal Institute of Technology) -- ROS1 ONLY
 
 | Field | Details |
 |-------|---------|
@@ -157,7 +236,7 @@ significantly better spatial accuracy and an immersive visualization layer.
 
 ---
 
-### 5. vr-hand-tracking (Northwestern ME 495) -- QUEST 3 FOCUSED
+### 7. vr-hand-tracking (Northwestern ME 495) -- QUEST 3 FOCUSED
 
 | Field | Details |
 |-------|---------|
@@ -180,7 +259,7 @@ significantly better spatial accuracy and an immersive visualization layer.
 
 ---
 
-### 6. vr_ros2_bridge (UM ARM Lab) -- HTC VIVE FOCUSED
+### 8. vr_ros2_bridge (UM ARM Lab) -- HTC VIVE FOCUSED
 
 | Field | Details |
 |-------|---------|
@@ -195,7 +274,28 @@ significantly better spatial accuracy and an immersive visualization layer.
 
 ## Architecture Comparison
 
-### Approach A: Unity + ROS-TCP-Connector (Recommended)
+### Approach A: WebXR + Python Server (RECOMMENDED -- Easiest)
+
+```
+Quest 2 (Browser/WebXR) --[WebSocket/WebRTC]--> Python Server --[ROS2 Topics]--> SteveROS
+```
+
+**Pros:**
+- ZERO installation on Quest -- just open a URL
+- pip install on host, 3 commands total
+- 90fps controller tracking
+- teleop_xr adds WebRTC video, bimanual IK, passthrough AR
+- No Unity, no Android SDK, no APK sideloading
+- Works with any WebXR-capable device (Quest 2/3/Pro, Pico, etc.)
+
+**Cons:**
+- Browser sandbox limits some hardware features
+- Less rich 3D visualization than native Unity app (teleop_xr partially addresses this)
+- Depends on Quest browser WebXR implementation
+
+---
+
+### Approach B: Unity + ROS-TCP-Connector (Most Feature-Rich)
 
 ```
 Quest 2 (Unity App) --[TCP]--> ROS-TCP-Endpoint --[ROS2 Topics]--> SteveROS
@@ -212,7 +312,7 @@ Quest 2 (Unity App) --[TCP]--> ROS-TCP-Endpoint --[ROS2 Topics]--> SteveROS
 - Must build and deploy Android APK to Quest
 - ROS-TCP-Connector has known connectivity issues on Quest 2 (GitHub Issues #353, #359, #280) -- workaround: ensure same subnet, disable firewall, use static IPs
 
-### Approach B: Hand Tracking Streamer + Python SDK (Simplest)
+### Approach C: Hand Tracking Streamer + Python SDK (Controller-Free)
 
 ```
 Quest 2 (HTS App) --[UDP/TCP]--> Python SDK --[ROS2 bridge]--> SteveROS
@@ -229,7 +329,7 @@ Quest 2 (HTS App) --[UDP/TCP]--> Python SDK --[ROS2 bridge]--> SteveROS
 - No immersive visualization (Quest only used as input device)
 - No controller button input (hand tracking only)
 
-### Approach C: WebXR + rosbridge_suite (Alternative)
+### Approach D: WebXR + rosbridge_suite (Legacy Alternative)
 
 ```
 Quest 2 (Browser/WebXR) --[WebSocket]--> rosbridge_server --[ROS2 Topics]--> SteveROS
@@ -246,7 +346,7 @@ Quest 2 (Browser/WebXR) --[WebSocket]--> rosbridge_server --[ROS2 Topics]--> Ste
 - More complex web development required
 - WebXR API limitations on Quest browser
 
-### Approach D: MQTT Bridge (Fallback)
+### Approach E: MQTT Bridge (Fallback)
 
 ```
 Quest 2 (Unity App) --[MQTT]--> Mosquitto Broker --[MQTT-ROS2 Bridge]--> SteveROS
@@ -265,54 +365,77 @@ Quest 2 (Unity App) --[MQTT]--> Mosquitto Broker --[MQTT-ROS2 Bridge]--> SteveRO
 
 ## Final Recommendation for SteveROS
 
-### Primary Path: unity_ros_teleoperation (ETH Zurich)
+### PRIMARY: teleop_xr (qrafty-ai) -- Start Here
+
+**Why this is the best fit:**
+1. **Zero install on Quest** -- open a URL and go. No Unity, no APK, no sideloading
+2. **Bimanual whole-body IK** -- perfect for a 20-DOF humanoid with two arms
+3. **WebRTC video** -- see robot cameras in the headset with minimal latency
+4. **Passthrough AR** -- toggle between VR and AR modes
+5. **pip install** -- 3 commands to running demo
+6. **Collision-aware IK** -- differentiable solver via Pyroki
+7. **Active development** -- updated Feb 2026, Apache-2.0 license
+8. Works with ROS2 Jazzy (Python 3.10+, distro-agnostic)
+
+### FALLBACK: SpesRobotics/teleop -- Even Simpler
+
+**Why:**
+1. More mature (182 stars, v0.1.4)
+2. `pip install teleop` + `python -m teleop.ros2` = done
+3. Same WebXR architecture but simpler (single-arm focus)
+4. Good stepping stone before teleop_xr
+
+### FOR FULL IMMERSION: unity_ros_teleoperation (ETH Zurich)
 
 **Why:**
 1. Most feature-complete VR teleoperation framework available
-2. OpenXR-based = Quest 2 compatible
-3. ROS2 support via TCP Endpoint (works with Jazzy)
-4. Already supports multiple robot models -- add KBot URDF
-5. Hand tracking built in -- can replace or supplement MediaPipe pipeline
-6. Published research backing (IROS 2024)
-7. Active development by reputable robotics lab (ETH Zurich RSL)
+2. Full 3D robot visualization, stereo cameras, point clouds in VR
+3. OpenXR-based = Quest 2 compatible
+4. ROS2 support via TCP Endpoint (works with Jazzy)
+5. Published research backing (IROS 2024)
+6. Best option if you need a rich immersive digital twin
 
-### Quick-Start Alternative: PickNikRobotics/meta_quest_teleoperation
-
-**Why:**
-1. Simpler to set up (fewer components)
-2. Designed specifically for MoveIt teleoperation (SteveROS uses MoveIt2)
-3. Publishes standard odometry + TF topics
-4. Can be up and running faster than the ETH solution
-5. PickNik is the team behind MoveIt -- guaranteed compatibility
-
-### Future Watch: Hand Tracking Streamer
+### MOVEIT-SPECIFIC: PickNikRobotics/meta_quest_teleoperation
 
 **Why:**
-1. Once the ROS2 package stabilizes, this becomes the easiest option
+1. Designed specifically for MoveIt teleoperation (SteveROS uses MoveIt2)
+2. Publishes standard odometry + TF topics
+3. PickNik is the team behind MoveIt -- guaranteed compatibility
+
+### FUTURE WATCH: Hand Tracking Streamer
+
+**Why:**
+1. Once the ROS2 package stabilizes, this becomes the best controller-free option
 2. MediaPipe-compatible output = near drop-in for existing SteveROS pipeline
 3. No Unity development needed
 4. Free and available on Quest Store today
-5. Best option if you want bare-hand tracking without controllers
 
 ---
 
 ## Integration Roadmap for SteveROS
 
-### Phase 1: Quick Prototype (1-2 days)
-1. Clone `PickNikRobotics/meta_quest_teleoperation`
-2. Build and deploy to Quest 2
-3. Add `ROS-TCP-Endpoint` (`main-ros2` branch) to SteveROS workspace
-4. Map `/right_controller_odom` to MoveIt2 servo input
-5. Test with MuJoCo sim first
+### Phase 1: Immediate Prototype (< 1 hour)
+1. `pip install teleop` on ROS2 machine
+2. Run `python -m teleop.ros2`
+3. Open displayed URL on Quest 2 browser
+4. Verify controller tracking works with ROS2 topics
+5. Test with MuJoCo sim (subscribe to target pose, command joint trajectories)
 
-### Phase 2: Full Integration (1-2 weeks)
-1. Set up `unity_ros_teleoperation` (ETH)
+### Phase 2: Bimanual Teleop (1-2 days)
+1. `pip install teleop-xr` + install pyroki/ballpark deps
+2. Configure KBot URDF for whole-body IK
+3. Set up WebRTC camera streaming from robot/sim
+4. Test bimanual arm control in passthrough AR mode
+5. Map IK output to MoveIt2 servo or direct joint trajectory controllers
+
+### Phase 3: Full Immersion (1-2 weeks, optional)
+1. Set up `unity_ros_teleoperation` (ETH) for rich VR experience
 2. Import KBot URDF into Unity project
-3. Configure MuJoCo camera feeds for VR passthrough
+3. Configure MuJoCo camera feeds for stereo VR rendering
 4. Set up bidirectional communication (haptic feedback from contact forces)
 5. Add hand tracking as alternative to controllers
 
-### Phase 3: Production Pipeline
+### Phase 4: Production Pipeline
 1. Evaluate Hand Tracking Streamer once ROS2 package is stable
 2. Compare tracking quality: Quest hand tracking vs. MediaPipe camera
 3. Integrate best option into `steveros_bringup` launch files
@@ -324,6 +447,8 @@ Quest 2 (Unity App) --[MQTT]--> Mosquitto Broker --[MQTT-ROS2 Bridge]--> SteveRO
 
 | Resource | URL |
 |----------|-----|
+| **teleop_xr (RECOMMENDED)** | https://github.com/qrafty-ai/teleop_xr |
+| SpesRobotics/teleop | https://github.com/SpesRobotics/teleop |
 | unity_ros_teleoperation | https://github.com/leggedrobotics/unity_ros_teleoperation |
 | meta_quest_teleoperation | https://github.com/PickNikRobotics/meta_quest_teleoperation |
 | Hand Tracking Streamer | https://www.meta.com/experiences/hand-tracking-streamer/26303946202523164/ |
