@@ -31,9 +31,9 @@ The Spectral Micro is made by Source Robotics (Croatia). It has FOC control, 14-
 | **Spectral Micro (original)** | Source Robotics (ships to US) | ~$93 | [source-robotics.com](https://source-robotics.com/products/spectral-micro-bldc-controller) |
 | Spectral Micro | Tindie (often out of stock) | $83 | [Tindie](https://www.tindie.com/products/sourcerobotics/spectral-micro-bldc-controller/) |
 | **ODrive Micro (US alt)** | ODrive Robotics (USA) | $89 | [ODrive Shop](https://shop.odriverobotics.com/products/odrive-micro) |
-| **moteus r4.11 (US alt)** | mjbots (USA) | $79 | [mjbots.com](https://mjbots.com/products/moteus-r4-11) |
+| **moteus r4.11 (US alt)** | mjbots (USA) | $59 | [mjbots.com](https://mjbots.com/products/moteus-r4-11) |
 
-**Recommendation:** Buy the **Spectral Micro directly from Source Robotics** for guaranteed firmware compatibility with the SSG-48. If you want US-only, the **ODrive Micro ($89)** or **moteus r4.11 ($79)** are excellent alternatives but will require custom firmware integration.
+**Recommendation:** Buy the **Spectral Micro directly from Source Robotics** for guaranteed firmware compatibility with the SSG-48. If you want US-only, the **ODrive Micro ($89)** or **moteus r4.11 ($59)** are excellent alternatives but will require custom firmware integration.
 
 ---
 
