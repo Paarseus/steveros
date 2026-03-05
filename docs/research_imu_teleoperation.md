@@ -542,7 +542,36 @@ L_total = L_joint_MSE + λ₁ * L_bone_length + λ₂ * L_temporal_smoothness + 
 | Generalization to new operators | Train with multiple operators; clothing/appearance augmentation; domain adversarial training |
 | Accuracy gap vs. IMU teacher | Acceptable for teleoperation; can use hybrid mode (vision + occasional IMU) for critical tasks |
 
-### 11.8 Advanced: Hybrid Deployment Strategy
+### 11.8 Loss Functions: What Works for Cross-Modal Distillation
+
+Naive loss functions often fail across modalities. Key findings from recent literature:
+
+| Loss | When to Use | Caveat |
+|------|-------------|--------|
+| **MSE / L2** | Direct regression (joint angles, positions) | Can force student features toward teacher's mean, conflicting with the student modality's optimal distribution |
+| **Smooth L1 (Huber)** | Regression with outlier robustness | Less gradient signal for small errors |
+| **KL Divergence** | Soft label distillation | Fails in cross-modal settings because logit distributions can't be identical across modalities (C2KD, CVPR 2024) |
+| **Contrastive (InfoNCE)** | Representation alignment | Best for learning shared embeddings; requires negative sampling |
+| **Feature Disentanglement** | Heterogeneous modalities | Decompose features into low-freq (modality-agnostic, use MSE) and high-freq (modality-specific, use logMSE) |
+| **Adversarial** | Ensuring plausible outputs | Used in HMR; training instability risk |
+
+**Best practice (C2KD, CVPR 2024)**: Use **soft constraints** rather than hard alignment. The modality gap means forcing exact feature matching overfits. Feature disentanglement into modality-invariant and modality-specific components outperforms forcing complete alignment.
+
+### 11.9 Additional Key Systems
+
+**Learning by Cheating (CoRL 2020)** — Chen et al. Decomposes autonomous driving into: (1) privileged agent with ground-truth layout learns to act; (2) vision-only agent learns by imitating the privileged agent. First method to achieve 100% success on all CARLA benchmark tasks. Directly demonstrates the train-with-privileged, deploy-without paradigm.
+
+**Asymmetric Actor-Critic (RSS 2018)** — Pinto et al. The foundational paper: critic trains on full simulator state while the actor (policy) receives only RGBD images. Proves asymmetric inputs significantly outperform symmetric inputs. Combined with domain randomization, achieves sim-to-real transfer with zero real-world training data.
+
+**Video Inertial Poser (VIP) / 3DPW Dataset** — Combines IMU sensors with a moving camera for in-the-wild 3D pose. IMU data provides pseudo ground truth for training monocular methods. Produced the 3DPW dataset — first benchmark with accurate 3D poses captured outdoors — now a standard evaluation benchmark.
+
+**Key2Mesh (2024)** — Pre-trains mesh estimation on unpaired MoCap data, then domain-adapts to visual domain using detected 2D keypoints. Outperforms HMR and SPIN in unpaired settings. Shows MoCap data serves as effective privileged pre-training even without paired image-3D data.
+
+**PhysHMR (2025)** — Physics-based framework that distills motion knowledge from a MoCap-trained expert to a vision-conditioned policy in a physics simulator. Produces physically grounded motion reconstructions aligned with input video.
+
+**Forces for Free (Science Robotics, 2024)** — Trains vision-based contact force estimator by observing a compliant robot hand, replacing dedicated force sensors with a camera. Force sensors provide ground-truth labels during training; only a camera is needed at deployment.
+
+### 11.10 Advanced: Hybrid Deployment Strategy
 
 Rather than fully removing IMUs, a practical middle ground:
 
@@ -567,6 +596,11 @@ This gives the best of both worlds: zero-burden operation for casual use, full p
 | 8 | Chen et al., "BEVDistill" | 2023 | CVPR | LiDAR→camera cross-modal distillation |
 | 9 | Goel et al., "4DHumans" | 2024 | CVPR | SOTA vision-only pose from MoCap training |
 | 10 | Shin et al., "WHAM" | 2024 | CVPR | World-grounded motion from MoCap features |
+| 11 | Chen et al., "Learning by Cheating" | 2020 | CoRL | Privileged→vision for autonomous driving |
+| 12 | Pinto et al., "Asymmetric Actor-Critic" | 2018 | RSS | Critic sees privileged state, actor sees vision |
+| 13 | Huo et al., "C2KD" | 2024 | CVPR | Bridging modality gap with soft constraints |
+| 14 | Ponton et al., "Forces for Free" | 2024 | *Science Robotics* | Force sensor→vision distillation |
+| 15 | Huang et al., "DIP" + VIP/3DPW | 2018 | SIGGRAPH Asia | IMU pseudo-GT for vision pose benchmarks |
 
 ### 11.10 Bottom Line
 
@@ -635,3 +669,9 @@ For SteveROS teleoperation specifically:
 39. Li et al. (2022). "See, Hear, and Feel: Smart Sensory Fusion for Robotic Manipulation." *CoRL 2022*.
 40. Yang et al. (2024). "Depth Anything V2." *arXiv:2406.09414*.
 41. Iskakov et al. (2019). "Learnable Triangulation of Human Pose." *ICCV 2019*.
+42. Chen et al. (2020). "Learning by Cheating." *CoRL 2020*.
+43. Pinto et al. (2018). "Asymmetric Actor Critic for Image-Based Robot Learning." *RSS 2018*.
+44. Huo et al. (2024). "C2KD: Bridging the Modality Gap for Cross-Modal Knowledge Distillation." *CVPR 2024*.
+45. (2024). "Forces for Free: Vision-Based Contact Force Estimation with a Compliant Hand." *Science Robotics*.
+46. (2024). "Key2Mesh: MoCap-to-Visual Domain Adaptation for Human Mesh Estimation." *arXiv:2404.07094*.
+47. (2025). "PhysHMR: Physics-Based Human Motion Reconstruction from Vision." *arXiv:2510.02566*.
