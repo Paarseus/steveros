@@ -1,0 +1,471 @@
+\documentclass[11pt,a4paper]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+
+% Colors
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.95}
+
+% Code listing style
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{codepurple},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codegreen},
+    basicstyle=\ttfamily\small,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    frame=single
+}
+\lstset{style=mystyle}
+
+% Header/Footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{SteveroOS -- Session Report}
+\fancyhead[R]{\today}
+\fancyfoot[C]{\thepage}
+
+\title{%
+  \textbf{SteveroOS Development Session Report} \\[0.5em]
+  \large MediaPipe Package Consolidation and Pose Teleop Visualization
+}
+\author{Development Session Log}
+\date{March 3, 2026}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+% ============================================================================
+\section{Executive Summary}
+% ============================================================================
+
+This session accomplished two major objectives for the SteveroOS humanoid robot platform:
+
+\begin{enumerate}
+    \item \textbf{Package Consolidation:} Merged three MediaPipe ROS\,2 packages into two by absorbing the asset-only \texttt{mediapipe\_ros2\_node} package into \texttt{mediapipe\_ros2\_py}.
+    \item \textbf{Pose Teleop Visualization:} Extended the launch infrastructure to display the robot URDF model in RViz, driven in real time by MediaPipe pose detection through the \texttt{pose\_to\_joints} bridge node.
+\end{enumerate}
+
+Both objectives required iterative debugging of ROS\,2 process management, TF frame resolution, camera driver reliability, and the gap between trajectory-based control interfaces and RViz's joint-state-based visualization.
+
+% ============================================================================
+\section{Phase 1: Package Consolidation (3 $\rightarrow$ 2)}
+% ============================================================================
+
+\subsection{Motivation}
+
+The repository contained three MediaPipe-related packages:
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\textbf{Package} & \textbf{Contents} & \textbf{Role} \\
+\midrule
+\texttt{mediapipe\_ros2\_interfaces} & \texttt{.msg} definitions & Message types \\
+\texttt{mediapipe\_ros2\_node} & Models, launch, rviz, Dockerfile & Asset shell (no source code) \\
+\texttt{mediapipe\_ros2\_py} & Python nodes (\texttt{mp\_node}, etc.) & Runtime nodes \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\texttt{mediapipe\_ros2\_node} had no source code of its own---it was a thin CMake shell holding \texttt{.task} model files, launch scripts, RViz configurations, a Dockerfile, and a vendored copy of Google's MediaPipe C++ source (unused at runtime, since the Python \texttt{mediapipe} pip package is used instead). Several of its launch files referenced a defunct \texttt{hand\_node} executable. Merging it into \texttt{mediapipe\_ros2\_py} follows standard ROS\,2 conventions where nodes, models, launch files, and configs coexist in one package.
+
+\subsection{Changes Performed}
+
+\subsubsection{Asset Migration}
+
+\begin{itemize}
+    \item \texttt{mediapipe\_ros2\_node/models/*.task} $\rightarrow$ \texttt{mediapipe\_ros2\_py/models/}
+    \item \texttt{mediapipe\_ros2\_node/rviz/*.rviz} $\rightarrow$ \texttt{mediapipe\_ros2\_py/rviz/}
+    \item \texttt{mediapipe\_ros2\_node/launch/cam\_and\_mp.launch.py} $\rightarrow$ \texttt{mediapipe\_ros2\_py/launch/}
+\end{itemize}
+
+\subsubsection{Launch File Consolidation}
+
+Three launch files referencing the defunct \texttt{hand\_node} executable were deleted:
+\begin{itemize}
+    \item \texttt{full\_demo.launch.py}
+    \item \texttt{hand\_demo.launch.py}
+    \item \texttt{viz\_demo.launch.py}
+\end{itemize}
+
+The duplicate \texttt{mp\_node.launch.py} from \texttt{mediapipe\_ros2\_node} was dropped in favor of the more feature-complete version already in \texttt{mediapipe\_ros2\_py}.
+
+\subsubsection{Code Cleanup}
+
+\begin{itemize}
+    \item Deleted \texttt{hand\_node\_legacy.py} (broken imports, superseded by \texttt{mp\_node.py}).
+    \item Moved \texttt{two\_cams.launch.py} from the Python package directory to the proper \texttt{launch/} directory so it gets installed by \texttt{setup.py}.
+\end{itemize}
+
+\subsubsection{Build System Updates}
+
+\texttt{setup.py} was updated with new \texttt{data\_files} entries:
+
+\begin{lstlisting}[language=Python]
+(os.path.join('share', package_name, 'models'), glob('models/*.task')),
+(os.path.join('share', package_name, 'rviz'), glob('rviz/*.rviz')),
+\end{lstlisting}
+
+\subsubsection{Reference Updates}
+
+All occurrences of \texttt{get\_package\_share\_directory('mediapipe\_ros2\_node')} were changed to \texttt{'mediapipe\_ros2\_py'} in:
+\begin{itemize}
+    \item \texttt{mp\_node.py} (lines 76, 80) -- model path resolution
+    \item \texttt{launch/mp\_node.launch.py} (line 22) -- RViz config path
+\end{itemize}
+
+\subsubsection{Deletion}
+
+The entire \texttt{mediapipe\_ros2\_node/} directory was removed, including the vendored \texttt{third\_party/mediapipe/} C++ source and the Dockerfile.
+
+\subsection{Verification}
+
+After consolidation, \texttt{colcon build --packages-select mediapipe\_ros2\_py mediapipe\_ros2\_interfaces} completed successfully. Installed assets were verified:
+
+\begin{lstlisting}[language=bash]
+ls install/mediapipe_ros2_py/share/mediapipe_ros2_py/models/
+# pose_landmarker.task  pose_landmarker_lite.task
+
+ls install/mediapipe_ros2_py/share/mediapipe_ros2_py/rviz/
+# hand_demo.rviz  mediapipe_default.rviz
+
+ls install/mediapipe_ros2_py/share/mediapipe_ros2_py/launch/
+# cam_and_mp.launch.py  mp_node.launch.py  pose_teleop.launch.py  two_cams.launch.py
+\end{lstlisting}
+
+A grep for \texttt{mediapipe\_ros2\_node} across the entire repository returned zero matches, confirming no stale references remain.
+
+% ============================================================================
+\section{Phase 2: Launch and Visualization}
+% ============================================================================
+
+\subsection{Objective}
+
+Launch the full pose-teleop pipeline with camera input, MediaPipe pose detection, robot model visualization in RViz, and a debug image viewer---all from the consolidated package.
+
+\subsection{Problems Encountered and Solutions}
+
+\subsubsection{Problem 1: ROS\,2 Not on PATH in Background Shells}
+
+\textbf{Symptom:} \texttt{ros2: command not found} when launching in background.
+
+\textbf{Cause:} Background shell processes spawned by the CLI tool do not inherit the interactive shell's environment. The ROS\,2 setup scripts (\texttt{/opt/ros/jazzy/setup.bash}) were not sourced.
+
+\textbf{Fix:} Prepend \texttt{source /opt/ros/jazzy/setup.bash \&\& source install/setup.bash} to every background command.
+
+\subsubsection{Problem 2: Conda Python Conflict with ROS\,2}
+
+\textbf{Symptom:} \texttt{rqt\_image\_view} crashed with:
+\begin{lstlisting}
+ModuleNotFoundError: No module named 'rclpy._rclpy_pybind11'
+\end{lstlisting}
+
+\textbf{Cause:} The system had Miniconda installed with Python~3.13. ROS\,2 Jazzy is built against Python~3.12. The \texttt{rqt\_image\_view} script uses \texttt{\#!/usr/bin/env python3}, which resolved to Conda's Python~3.13, causing a C extension ABI mismatch.
+
+\textbf{Fix:} Invoked \texttt{rqt\_image\_view} directly with the system Python:
+\begin{lstlisting}[language=bash]
+/usr/bin/python3 /opt/ros/jazzy/lib/rqt_image_view/rqt_image_view
+\end{lstlisting}
+
+\subsubsection{Problem 3: Wrong Camera Device}
+
+\textbf{Symptom:} \texttt{v4l2\_camera\_node} reported ``Current pixel format: Z16 @ 640x480''---a depth stream, not RGB.
+
+\textbf{Cause:} The default \texttt{/dev/video0} on the Intel RealSense is the depth sensor. The RGB stream is on \texttt{/dev/video4} (YUYV 4:2:2 format).
+
+\textbf{Fix:} Enumerated devices with \texttt{v4l2-ctl --list-devices} and format capabilities per device. Launched with \texttt{-p video\_device:=/dev/video4}.
+
+\subsubsection{Problem 4: Camera ``Device or Resource Busy''}
+
+\textbf{Symptom:} \texttt{Buffer failure on capture start: Device or resource busy (16)}.
+
+\textbf{Cause:} A previously killed camera process still held the V4L2 device file descriptor. The \texttt{pkill -9} pattern did not match the process's full command line reliably due to shell wrapper indirection.
+
+\textbf{Fix:} Used \texttt{fuser /dev/video4} to identify the exact PID holding the device, then killed it directly. Adopted a more thorough cleanup procedure: \texttt{pkill} followed by \texttt{fuser}-based targeted kills, with triple verification.
+
+\subsubsection{Problem 5: Camera Stalling at ``Starting Camera''}
+
+\textbf{Symptom:} The \texttt{v4l2\_camera\_node} logged ``Starting camera'' but never produced frames or YUYV$\rightarrow$RGB conversion messages.
+
+\textbf{Cause:} Intermittent issue with the RealSense USB device after rapid start/stop cycles. The V4L2 buffer queue was not properly initialized.
+
+\textbf{Fix:} Ensured clean device release between attempts (verified with \texttt{fuser}), added explicit \texttt{image\_size} and \texttt{output\_encoding} parameters, and allowed sufficient cooldown between kills and relaunches.
+
+\subsubsection{Problem 6: RViz ``Frame [map] Does Not Exist''}
+
+\textbf{Symptom:} RViz displayed the error: ``No tf data. Actual error: Frame [map] does not exist.''
+
+\textbf{Cause:} The RViz config and \texttt{mp\_node} both defaulted to \texttt{frame\_id: map}, but no node in the pipeline published a TF frame named \texttt{map}.
+
+\textbf{Fix (Iteration 1):} Changed the RViz fixed frame to \texttt{mediapipe} and published a static transform \texttt{world}$\rightarrow$\texttt{mediapipe} using \texttt{static\_transform\_publisher}.
+
+\textbf{Fix (Iteration 2):} Once the robot model was added, switched the fixed frame to \texttt{floating\_base\_link} (the URDF root link), which is published by \texttt{robot\_state\_publisher}. This eliminated the need for the standalone static transform publisher.
+
+\subsubsection{Problem 7: Robot Model Not Loaded in RViz}
+
+\textbf{Symptom:} No robot model visible in RViz.
+
+\textbf{Cause:} The \texttt{mediapipe\_default.rviz} config only contained Grid, Image, and MarkerArray displays---no \texttt{RobotModel} display, and no \texttt{robot\_state\_publisher} in the launch.
+
+\textbf{Fix:} Added \texttt{RobotModel} and \texttt{TF} displays to the RViz config, and added \texttt{robot\_state\_publisher} (gated by a \texttt{start\_robot} launch argument) to \texttt{mp\_node.launch.py}.
+
+\subsubsection{Problem 8: Robot Model TF Errors}
+
+\textbf{Symptom:} Robot model loaded but showed transform errors for all links.
+
+\textbf{Cause:} \texttt{robot\_state\_publisher} publishes fixed transforms from the URDF but needs \texttt{/joint\_states} messages to compute transforms for non-fixed joints. Initially, \texttt{joint\_state\_publisher} was used, which publishes zeros.
+
+\textbf{Fix:} Replaced \texttt{joint\_state\_publisher} with the existing \texttt{pose\_to\_joints} node in the launch.
+
+\subsubsection{Problem 9: Robot Model Not Moving}
+
+\textbf{Symptom:} Robot model appeared in RViz but arms did not move with pose detection.
+
+\textbf{Cause:} The \texttt{pose\_to\_joints} node published \texttt{JointTrajectory} messages to controller topics (\texttt{/right\_arm\_controller/joint\_trajectory}), not \texttt{JointState} messages on \texttt{/joint\_states}. RViz's robot model visualization relies on \texttt{robot\_state\_publisher}, which subscribes exclusively to \texttt{/joint\_states}.
+
+\textbf{Fix:} Added a \texttt{sensor\_msgs/JointState} publisher to \texttt{pose\_to\_joints.py} that publishes the computed arm joint angles on \texttt{/joint\_states} alongside the existing trajectory publishers. This allows the node to drive both RViz visualization and actual robot controllers simultaneously.
+
+\begin{lstlisting}[language=Python]
+# Added to pose_to_joints.py
+self.pub_joint_states = self.create_publisher(JointState, '/joint_states', 10)
+
+# After computing both arms:
+js = JointState()
+js.header.stamp = self.get_clock().now().to_msg()
+js.name = list(RIGHT_JOINT_NAMES) + list(LEFT_JOINT_NAMES)
+js.position = [float(p) for p in right_smooth + left_smooth]
+self.pub_joint_states.publish(js)
+\end{lstlisting}
+
+% ============================================================================
+\section{Multi-Agent Analysis}
+% ============================================================================
+
+This section analyzes the session from a multi-agent systems perspective, examining how the various ROS\,2 nodes interact as a distributed agent network.
+
+\subsection{Agent Topology}
+
+The final system comprises the following communicating agents (ROS\,2 nodes):
+
+\begin{center}
+\begin{tabular}{llp{6cm}}
+\toprule
+\textbf{Agent (Node)} & \textbf{Type} & \textbf{Role} \\
+\midrule
+\texttt{v4l2\_camera\_node} & Sensor Agent & Captures RGB frames from hardware and publishes \texttt{sensor\_msgs/Image} \\
+\texttt{mp\_node} & Perception Agent & Runs MediaPipe pose estimation, publishes landmarks and visualization markers \\
+\texttt{pose\_to\_joints} & Translation Agent & Converts pose landmarks to robot joint angles via inverse kinematics \\
+\texttt{robot\_state\_publisher} & State Agent & Computes forward kinematics from URDF + joint states, publishes TF tree \\
+\texttt{rviz2} & Visualization Agent & Renders robot model, markers, images, and TF frames \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Communication Graph}
+
+The data flow forms a directed acyclic graph:
+
+\begin{verbatim}
+v4l2_camera_node
+    |
+    | /image_raw (sensor_msgs/Image)
+    v
+mp_node
+    |---> /mediapipe/debug_image (sensor_msgs/Image) ---> rviz2
+    |---> /mediapipe/markers (MarkerArray) ------------> rviz2
+    |---> /mediapipe/pose/landmarks (PoseLandmarks) --+
+    v                                                  |
+pose_to_joints <---------------------------------------+
+    |
+    |---> /joint_states (sensor_msgs/JointState)
+    |---> /right_arm_controller/joint_trajectory
+    |---> /left_arm_controller/joint_trajectory
+    v
+robot_state_publisher
+    |
+    | /tf, /tf_static
+    v
+rviz2
+\end{verbatim}
+
+\subsection{Agent Interaction Patterns}
+
+\subsubsection{Publish-Subscribe Decoupling}
+
+All inter-agent communication uses ROS\,2's publish-subscribe pattern, providing:
+\begin{itemize}
+    \item \textbf{Loose coupling:} Agents can be started, stopped, and replaced independently.
+    \item \textbf{Fan-out:} \texttt{mp\_node}'s output feeds both the visualization pipeline and the control pipeline simultaneously.
+    \item \textbf{Late binding:} \texttt{rviz2} can subscribe to topics before the publishers exist, enabling flexible launch ordering.
+\end{itemize}
+
+\subsubsection{Dual-Output Bridge Pattern}
+
+The \texttt{pose\_to\_joints} node implements a bridge pattern that translates between two agent ecosystems:
+\begin{itemize}
+    \item \textbf{Control ecosystem:} \texttt{JointTrajectory} messages for \texttt{ros2\_control} hardware controllers.
+    \item \textbf{Visualization ecosystem:} \texttt{JointState} messages for \texttt{robot\_state\_publisher} and RViz.
+\end{itemize}
+
+This dual-output design was a key fix in this session. Without it, the control agents and visualization agents operated in isolation---the robot model could not reflect the computed joint angles.
+
+\subsubsection{TF as Shared World Model}
+
+The TF tree acts as a distributed shared world model. Multiple agents contribute to it:
+\begin{itemize}
+    \item \texttt{robot\_state\_publisher} publishes the kinematic chain.
+    \item \texttt{static\_transform\_publisher} (when used) anchors floating frames.
+    \item \texttt{rviz2} consumes the TF tree to render all spatial data in a consistent frame.
+\end{itemize}
+
+A broken TF tree (missing frames, disconnected subtrees) causes cascading failures across all visualization agents---as observed with the ``Frame [map] does not exist'' error.
+
+\subsection{Failure Mode Analysis}
+
+\begin{center}
+\begin{longtable}{p{3cm}p{3cm}p{4cm}p{3cm}}
+\toprule
+\textbf{Failure Mode} & \textbf{Affected Agents} & \textbf{Propagation} & \textbf{Recovery} \\
+\midrule
+Camera device busy & \texttt{v4l2\_camera} & Entire pipeline starves (no images) & Device-level reset \\
+\addlinespace
+Wrong video device & \texttt{v4l2\_camera} & Publishes unusable depth data & Reconfigure parameter \\
+\addlinespace
+Missing TF frame & \texttt{rviz2} & All spatial displays fail & Add frame publisher \\
+\addlinespace
+No joint states & \texttt{robot\_state\_pub} & Robot model frozen at zero pose & Add JointState source \\
+\addlinespace
+Python version mismatch & \texttt{rqt\_image\_view} & Single agent crash, others unaffected & Use correct interpreter \\
+\addlinespace
+Stale package reference & \texttt{mp\_node} & Model file not found, node crashes & Update package name \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\subsection{Observations on Agent Resilience}
+
+\begin{enumerate}
+    \item \textbf{Sensor agent as single point of failure:} The camera node is the sole data source. Its failure (device busy, stalling) silently starves all downstream agents. The \texttt{mp\_node} continues running but produces no output. No agent in the pipeline raises an alarm about missing input---a gap in the system's observability.
+
+    \item \textbf{Process lifecycle management:} ROS\,2 nodes spawned via \texttt{ros2 launch} are managed as child processes. However, when launched from external shell wrappers, the process tree becomes opaque to simple \texttt{pkill} patterns. The session required progressively more aggressive cleanup strategies (pattern-based \texttt{pkill} $\rightarrow$ PID-targeted \texttt{kill} $\rightarrow$ \texttt{fuser}-based device release).
+
+    \item \textbf{Graceful degradation is absent:} When the camera stalls, the system does not degrade gracefully. The \texttt{mp\_node} could publish a ``no input'' diagnostic, and the \texttt{pose\_to\_joints} node could hold the last known pose rather than silently stopping. These improvements would make the multi-agent system more robust.
+
+    \item \textbf{Frame agreement as implicit contract:} The TF frame name (\texttt{map}, \texttt{mediapipe}, \texttt{floating\_base\_link}) is an implicit contract between agents. When agents disagree on frame names, failures are silent until RViz reports missing transforms. A shared configuration source for frame names would reduce this coupling.
+\end{enumerate}
+
+% ============================================================================
+\section{Final System Architecture}
+% ============================================================================
+
+\subsection{Package Structure (Post-Consolidation)}
+
+\begin{lstlisting}
+mediapipe_ros2_py/
+  launch/
+    cam_and_mp.launch.py      # Camera + MP node
+    mp_node.launch.py          # MP + RViz + robot model (configurable)
+    pose_teleop.launch.py      # Full teleop pipeline
+    two_cams.launch.py         # Dual camera setup
+  mediapipe_ros2_py/
+    mp_node.py                 # MediaPipe perception node
+    pose_to_joints.py          # Pose-to-joint-angle bridge
+    gesture_to_turtlesim.py    # Gesture demo node
+  models/
+    pose_landmarker.task       # BlazePose full model
+    pose_landmarker_lite.task  # BlazePose lite model
+  rviz/
+    hand_demo.rviz
+    mediapipe_default.rviz     # Default config with robot model
+  setup.py
+  package.xml
+
+mediapipe_ros2_interfaces/     # Unchanged (message definitions)
+\end{lstlisting}
+
+\subsection{Launch Command}
+
+The final working launch command:
+
+\begin{lstlisting}[language=bash]
+# Terminal 1: Camera
+ros2 run v4l2_camera v4l2_camera_node \
+    --ros-args -p video_device:=/dev/video4
+
+# Terminal 2: Full pipeline
+ros2 launch mediapipe_ros2_py mp_node.launch.py \
+    model:=pose \
+    frame_id:=floating_base_link \
+    start_rviz:=true \
+    start_robot:=true
+\end{lstlisting}
+
+% ============================================================================
+\section{Files Modified}
+% ============================================================================
+
+\begin{center}
+\begin{longtable}{lp{8cm}}
+\toprule
+\textbf{File} & \textbf{Change} \\
+\midrule
+\texttt{mediapipe\_ros2\_py/setup.py} & Added \texttt{data\_files} for models and rviz \\
+\texttt{mp\_node.py} & Updated share directory from \texttt{mediapipe\_ros2\_node} to \texttt{mediapipe\_ros2\_py} \\
+\texttt{pose\_to\_joints.py} & Added \texttt{JointState} publisher on \texttt{/joint\_states} \\
+\texttt{launch/mp\_node.launch.py} & Added \texttt{robot\_state\_publisher}, \texttt{pose\_to\_joints}, \texttt{start\_robot} arg; updated rviz path \\
+\texttt{rviz/mediapipe\_default.rviz} & Added RobotModel + TF displays; changed fixed frame to \texttt{floating\_base\_link} \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\subsection{Files Moved}
+\begin{itemize}
+    \item \texttt{mediapipe\_ros2\_node/models/*.task} $\rightarrow$ \texttt{mediapipe\_ros2\_py/models/}
+    \item \texttt{mediapipe\_ros2\_node/rviz/*.rviz} $\rightarrow$ \texttt{mediapipe\_ros2\_py/rviz/}
+    \item \texttt{mediapipe\_ros2\_node/launch/cam\_and\_mp.launch.py} $\rightarrow$ \texttt{mediapipe\_ros2\_py/launch/}
+    \item \texttt{two\_cams.launch.py}: Python pkg dir $\rightarrow$ \texttt{launch/} dir
+\end{itemize}
+
+\subsection{Files Deleted}
+\begin{itemize}
+    \item \texttt{mediapipe\_ros2\_node/} (entire directory)
+    \item \texttt{mediapipe\_ros2\_py/mediapipe\_ros2\_py/hand\_node\_legacy.py}
+\end{itemize}
+
+% ============================================================================
+\section{Conclusion}
+% ============================================================================
+
+This session consolidated the MediaPipe ROS\,2 packages from three to two, eliminating dead code and unused vendored dependencies. The launch infrastructure was extended to support integrated robot model visualization driven by real-time pose detection. Nine distinct problems were encountered and resolved, ranging from system-level issues (camera drivers, Python version conflicts, process management) to ROS\,2-specific architectural concerns (TF frame resolution, the JointTrajectory vs.\ JointState interface gap).
+
+The multi-agent analysis reveals that the system's robustness depends critically on implicit contracts between nodes (topic names, frame IDs, message types) and on the reliability of the sensor agent at the pipeline's root. Future work should address graceful degradation, input health monitoring, and centralized frame configuration.
+
+\end{document}
