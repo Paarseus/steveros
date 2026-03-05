@@ -467,13 +467,25 @@ The MoCap-to-vision pipeline is the dominant paradigm in the field. Key systems:
 
 ### 11.4 Cross-Modal Distillation Methods
 
-#### Direct Approaches
+#### Direct IMU-Vision Distillation Papers
 
-**IMU2CLIP (Meta/FAIR, 2022)** — Moon et al. Aligns IMU representations with CLIP's video/text embeddings using contrastive learning. After training, IMU embeddings are interchangeable with video embeddings. Demonstrates feasibility of shared IMU-vision representation spaces.
+**EgoDistill (NeurIPS 2023)** — Tan, Nagarajan & Grauman (UT Austin). **The closest direct match.** During training, a lightweight model takes sparse video frames + IMU to approximate features from a heavy video model. At inference, the lightweight model replaces the expensive video model, achieving **200x fewer GFLOPs**. Key finding: IMU coupled with a single image provides **better cross-modality distillation** than images alone or images with audio. Uses GoPro IMU (BOSCH BMI260, ~$3).
 
-**BEVDistill (CVPR 2023)** — Chen et al. Distills LiDAR-based 3D detection knowledge to camera-only detection. Camera student significantly closes the performance gap with LiDAR teacher. Framework directly applicable to IMU→vision.
+**COMODO (2025)** — Chen, Wongso et al. The reverse direction: distills from video (teacher) to IMU (student) for activity recognition. Demonstrates the **bidirectionality** of the paradigm — knowledge transfers both ways between IMU and vision modalities.
 
-**MonoDistill (ICLR 2022)** — Chong et al. Uses LiDAR point clouds during training to teach monocular 3D estimation. LiDAR serves as privileged information — used only in training, removed at inference.
+**IMU2CLIP (Meta/FAIR, 2022)** — Moon et al. Aligns IMU representations with CLIP's video/text embeddings using contrastive learning. After training, IMU embeddings are interchangeable with video embeddings.
+
+#### IMU as Ground Truth for Vision Training
+
+**3DPW Dataset (ECCV 2018)** — von Marcard et al. **Foundational for this exact approach.** Fuses 6 IMUs with a moving camera to produce the first in-the-wild dataset with accurate 3D SMPL pose annotations (26mm average error). This dataset is now a standard benchmark used to train and evaluate monocular vision-based pose estimators — an indirect but large-scale validation of "training with IMU ground truth, deploying with vision only."
+
+**Depth as Privileged Information for 3D HPE (2024)** — Simoni et al. Uses depth exclusively during training to boost RGB-only 3D pose estimation. Shows privileged information **significantly enhances performance even on limited, small datasets**. General across any 3D HPE method.
+
+#### Autonomous Driving Scale Validation
+
+**BEVDistill (ICLR 2023)** — Chen et al. Camera student closes a **15% mAP gap** to within 2-5% of the LiDAR teacher. Framework directly applicable to IMU→vision.
+
+**MonoDistill (ICLR 2022)** — Chong et al. Uses LiDAR point clouds during training to teach monocular 3D estimation. LiDAR is privileged information — removed at inference.
 
 #### The Sim-to-Real Analogy (Same Paradigm)
 
@@ -485,7 +497,16 @@ The most successful robotics examples use the same principle with simulated priv
 
 **Extreme Parkour (2024)** — Zhang et al. (CMU). Teacher trained with privileged height-map + contact info. Student uses only proprioception + depth camera. Performs extreme parkour without privileged information.
 
-### 11.5 Implementation Blueprint for Teleoperation
+### 11.5 UMI: A Real System Already Doing This for Teleoperation
+
+**Universal Manipulation Interface (UMI, RSS 2024)** — Cheng Chi et al. (Stanford). **The most directly relevant system.** UMI uses GoPro cameras with built-in IMUs during **data collection** to achieve precise 6DoF tracking via inertial-monocular SLAM (based on ORB-SLAM3). The IMU provides metric scale and handles motion blur. At **deployment**, the learned diffusion policy uses only wrist-mounted camera images — **no IMU required**.
+
+This is precisely the "train with IMU, deploy vision-only" paradigm applied to teleoperation, and it works in production-quality research demos.
+
+- Project: https://umi-gripper.github.io/
+- Code: https://github.com/real-stanford/universal_manipulation_interface
+
+### 11.6 Implementation Blueprint for Teleoperation
 
 #### Phase 1: Data Collection (IMU + Camera)
 - Operator wears 2-4 IMUs (ESP32 + BNO055, ~$100 total) on upper arm, forearm, torso
@@ -519,7 +540,7 @@ L_total = L_joint_MSE + λ₁ * L_bone_length + λ₂ * L_temporal_smoothness + 
 - Fine-tune vision model on new data
 - This corrects for lighting changes, camera drift, appearance changes
 
-### 11.6 Expected Performance
+### 11.7 Expected Performance
 
 | Metric | IMU-Only | Vision After Distillation | Gap |
 |--------|----------|--------------------------|-----|
@@ -532,7 +553,7 @@ L_total = L_joint_MSE + λ₁ * L_bone_length + λ₂ * L_temporal_smoothness + 
 
 **For gross arm movements in teleoperation (reaching, pointing, grasping postures): the 5-10° accuracy gap is typically acceptable.**
 
-### 11.7 Key Challenges and Mitigations
+### 11.8 Key Challenges and Mitigations
 
 | Challenge | Mitigation |
 |-----------|-----------|
@@ -542,7 +563,7 @@ L_total = L_joint_MSE + λ₁ * L_bone_length + λ₂ * L_temporal_smoothness + 
 | Generalization to new operators | Train with multiple operators; clothing/appearance augmentation; domain adversarial training |
 | Accuracy gap vs. IMU teacher | Acceptable for teleoperation; can use hybrid mode (vision + occasional IMU) for critical tasks |
 
-### 11.8 Loss Functions: What Works for Cross-Modal Distillation
+### 11.9 Loss Functions: What Works for Cross-Modal Distillation
 
 Naive loss functions often fail across modalities. Key findings from recent literature:
 
@@ -557,7 +578,7 @@ Naive loss functions often fail across modalities. Key findings from recent lite
 
 **Best practice (C2KD, CVPR 2024)**: Use **soft constraints** rather than hard alignment. The modality gap means forcing exact feature matching overfits. Feature disentanglement into modality-invariant and modality-specific components outperforms forcing complete alignment.
 
-### 11.9 Additional Key Systems
+### 11.10 Additional Key Systems
 
 **Learning by Cheating (CoRL 2020)** — Chen et al. Decomposes autonomous driving into: (1) privileged agent with ground-truth layout learns to act; (2) vision-only agent learns by imitating the privileged agent. First method to achieve 100% success on all CARLA benchmark tasks. Directly demonstrates the train-with-privileged, deploy-without paradigm.
 
@@ -571,7 +592,7 @@ Naive loss functions often fail across modalities. Key findings from recent lite
 
 **Forces for Free (Science Robotics, 2024)** — Trains vision-based contact force estimator by observing a compliant robot hand, replacing dedicated force sensors with a camera. Force sensors provide ground-truth labels during training; only a camera is needed at deployment.
 
-### 11.10 Advanced: Hybrid Deployment Strategy
+### 11.11 Advanced: Hybrid Deployment Strategy
 
 Rather than fully removing IMUs, a practical middle ground:
 
@@ -582,7 +603,7 @@ Rather than fully removing IMUs, a practical middle ground:
 
 This gives the best of both worlds: zero-burden operation for casual use, full precision when needed.
 
-### 11.9 Key Papers for This Topic
+### 11.12 Key Papers for This Topic
 
 | # | Paper | Year | Venue | Key Contribution |
 |---|-------|------|-------|-----------------|
@@ -602,7 +623,7 @@ This gives the best of both worlds: zero-burden operation for casual use, full p
 | 14 | Ponton et al., "Forces for Free" | 2024 | *Science Robotics* | Force sensor→vision distillation |
 | 15 | Huang et al., "DIP" + VIP/3DPW | 2018 | SIGGRAPH Asia | IMU pseudo-GT for vision pose benchmarks |
 
-### 11.10 Bottom Line
+### 11.13 Bottom Line
 
 **This is not speculative — it's the dominant paradigm in human pose estimation.** Every state-of-the-art vision-only pose estimator (HMR, SPIN, CLIFF, 4DHumans, TokenHMR) was trained using body-sensor ground truth (MoCap) and deploys with cameras only. IMUs can serve as a more accessible, affordable alternative to MoCap for generating these training labels.
 
@@ -675,3 +696,10 @@ For SteveROS teleoperation specifically:
 45. (2024). "Forces for Free: Vision-Based Contact Force Estimation with a Compliant Hand." *Science Robotics*.
 46. (2024). "Key2Mesh: MoCap-to-Visual Domain Adaptation for Human Mesh Estimation." *arXiv:2404.07094*.
 47. (2025). "PhysHMR: Physics-Based Human Motion Reconstruction from Vision." *arXiv:2510.02566*.
+48. Tan et al. (2023). "EgoDistill: Egocentric Head Motion Distillation for Efficient Video Understanding." *NeurIPS 2023*.
+49. Chi et al. (2024). "Universal Manipulation Interface (UMI)." *RSS 2024*. https://umi-gripper.github.io/
+50. von Marcard et al. (2018). "Recovering Accurate 3D Human Pose in the Wild Using IMUs and a Moving Camera (3DPW)." *ECCV 2018*.
+51. Simoni et al. (2024). "Depth-based Privileged Information for Boosting 3D Human Pose Estimation on RGB." *arXiv:2409.11104*.
+52. Chen et al. (2025). "COMODO: Cross-Modal Video-to-IMU Distillation." *arXiv:2503.07259*.
+53. Gupta et al. (2016). "Cross Modal Distillation for Supervision Transfer." *CVPR 2016*.
+54. Hoffman et al. (2016). "Learning with Side Information through Modality Hallucination." *CVPR 2016*.
