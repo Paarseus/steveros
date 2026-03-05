@@ -15,16 +15,37 @@ def generate_launch_description():
         'image_topic', default_value='/image_raw')
     topic_prefix_arg = DeclareLaunchArgument(
         'topic_prefix', default_value='/mediapipe')
-    ema_alpha_arg = DeclareLaunchArgument(
-        'ema_alpha', default_value='0.3')
     traj_dur_arg = DeclareLaunchArgument(
         'trajectory_duration', default_value='0.1')
+
+    # One Euro Filter parameters
+    filter_min_cutoff_arg = DeclareLaunchArgument(
+        'filter_min_cutoff', default_value='1.0',
+        description='One Euro Filter min cutoff (Hz). Lower = less jitter at rest')
+    filter_beta_arg = DeclareLaunchArgument(
+        'filter_beta', default_value='0.007',
+        description='One Euro Filter beta. Higher = less lag during fast motion')
+    filter_yaw_min_cutoff_arg = DeclareLaunchArgument(
+        'filter_yaw_min_cutoff', default_value='0.5',
+        description='Heavier filtering on shoulder yaw (depth-derived, noisier)')
+    dead_zone_arg = DeclareLaunchArgument(
+        'dead_zone', default_value='0.015',
+        description='Dead zone threshold (rad) to suppress micro-oscillations')
+
+    # MediaPipe confidence thresholds
+    min_tracking_confidence_arg = DeclareLaunchArgument(
+        'min_tracking_confidence', default_value='0.65',
+        description='Min tracking confidence (higher = faster re-detection)')
 
     video_device = LaunchConfiguration('video_device')
     image_topic = LaunchConfiguration('image_topic')
     topic_prefix = LaunchConfiguration('topic_prefix')
-    ema_alpha = LaunchConfiguration('ema_alpha')
     traj_dur = LaunchConfiguration('trajectory_duration')
+    filter_min_cutoff = LaunchConfiguration('filter_min_cutoff')
+    filter_beta = LaunchConfiguration('filter_beta')
+    filter_yaw_min_cutoff = LaunchConfiguration('filter_yaw_min_cutoff')
+    dead_zone = LaunchConfiguration('dead_zone')
+    min_tracking_confidence = LaunchConfiguration('min_tracking_confidence')
 
     # v4l2 camera node
     camera_node = Node(
@@ -50,6 +71,7 @@ def generate_launch_description():
             'image_topic': image_topic,
             'topic_prefix': topic_prefix,
             'publish_debug_image': True,
+            'min_tracking_confidence': min_tracking_confidence,
         }],
     )
 
@@ -60,8 +82,11 @@ def generate_launch_description():
         name='pose_to_joints',
         output='screen',
         parameters=[{
-            'ema_alpha': ema_alpha,
             'trajectory_duration': traj_dur,
+            'filter_min_cutoff': filter_min_cutoff,
+            'filter_beta': filter_beta,
+            'filter_yaw_min_cutoff': filter_yaw_min_cutoff,
+            'dead_zone': dead_zone,
         }],
     )
 
@@ -69,8 +94,12 @@ def generate_launch_description():
         video_device_arg,
         image_topic_arg,
         topic_prefix_arg,
-        ema_alpha_arg,
         traj_dur_arg,
+        filter_min_cutoff_arg,
+        filter_beta_arg,
+        filter_yaw_min_cutoff_arg,
+        dead_zone_arg,
+        min_tracking_confidence_arg,
         camera_node,
         mp_node,
         bridge_node,

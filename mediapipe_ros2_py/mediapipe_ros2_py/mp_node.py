@@ -50,7 +50,7 @@ class MPNode(Node):
         # confidence thresholds
         self.declare_parameter('min_detection_confidence', 0.5)
         self.declare_parameter('min_presence_confidence', 0.5)
-        self.declare_parameter('min_tracking_confidence', 0.5)
+        self.declare_parameter('min_tracking_confidence', 0.65)
         # model filenames (expected under share/<pkg>/models)
         self.declare_parameter('gesture_model_filename', 'gesture_recognizer.task')
         self.declare_parameter('hand_model_filename', 'hand_landmarker.task')
@@ -115,7 +115,7 @@ class MPNode(Node):
 
         # -------- Subscriber --------
         qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
-                         history=HistoryPolicy.KEEP_LAST, depth=5)
+                         history=HistoryPolicy.KEEP_LAST, depth=1)
         self.sub = self.create_subscription(Image, self.image_topic, self.on_image, qos)
         self.bridge = CvBridge()
         self.last_bgr = None
