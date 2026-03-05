@@ -103,7 +103,35 @@ python -m teleop.ros2_ik --joint-names joint1 joint2 ... --ee-link end_effector
 
 ---
 
-### 3. unity_ros_teleoperation (ETH Zurich / Legged Robotics) -- BEST FULL VR
+### 3. Open Teach (NYU / Meta-funded) -- BEST FOR DEXTEROUS MANIPULATION
+
+| Field | Details |
+|-------|---------|
+| **Repo** | https://github.com/aadhithya14/Open-Teach |
+| **Project Page** | https://open-teach.github.io/ |
+| **Stars** | 358 (most starred Quest teleop project) |
+| **License** | MIT |
+| **ROS2 Support** | Uses own controller framework (not ROS-native) |
+| **Quest 2 Compatible** | Targets Quest 3 (mixed reality), Quest 2 may work |
+| **Last Updated** | 2024 |
+| **Ease of Setup** | Medium |
+
+**Why it's notable:**
+- **358 stars** -- most popular Quest teleop project overall
+- **Multi-arm + dexterous hand** support (Franka, xArm, Jaco, Allegro hand, Hello Stretch)
+- **Calibration-free** mixed reality teleoperation
+- **Funded by Honda, Meta, Amazon, ONR** -- serious research backing
+- Only framework enabling multi-arm + hands + mobile manipulators in one system
+
+**Caveats for SteveROS:**
+- **Not ROS2 native** -- uses its own controller framework, would need bridging
+- Targets Quest 3 for mixed reality features
+- More research-focused than production-ready
+- Would require significant integration work with ros2_control
+
+---
+
+### 4. unity_ros_teleoperation (ETH Zurich / Legged Robotics) -- BEST FULL VR
 
 | Field | Details |
 |-------|---------|
@@ -139,7 +167,7 @@ python -m teleop.ros2_ik --joint-names joint1 joint2 ... --ee-link end_effector
 
 ---
 
-### 4. PickNikRobotics/meta_quest_teleoperation -- MOVEIT-SPECIFIC
+### 5. PickNikRobotics/meta_quest_teleoperation -- MOVEIT-SPECIFIC
 
 | Field | Details |
 |-------|---------|
@@ -178,7 +206,7 @@ python -m teleop.ros2_ik --joint-names joint1 joint2 ... --ee-link end_effector
 
 ---
 
-### 5. Hand Tracking Streamer (HTS) -- BEST FOR CONTROLLER-FREE TRACKING
+### 6. Hand Tracking Streamer (HTS) -- BEST FOR CONTROLLER-FREE TRACKING
 
 | Field | Details |
 |-------|---------|
@@ -212,7 +240,7 @@ python -m teleop.ros2_ik --joint-names joint1 joint2 ... --ee-link end_effector
 
 ---
 
-### 6. Quest2ROS (KTH Royal Institute of Technology) -- ROS1 ONLY
+### 7. Quest2ROS (KTH Royal Institute of Technology) -- ROS1 ONLY
 
 | Field | Details |
 |-------|---------|
@@ -236,7 +264,7 @@ python -m teleop.ros2_ik --joint-names joint1 joint2 ... --ee-link end_effector
 
 ---
 
-### 7. vr-hand-tracking (Northwestern ME 495) -- QUEST 3 FOCUSED
+### 8. vr-hand-tracking (Northwestern ME 495) -- QUEST 3 FOCUSED
 
 | Field | Details |
 |-------|---------|
@@ -259,7 +287,7 @@ python -m teleop.ros2_ik --joint-names joint1 joint2 ... --ee-link end_effector
 
 ---
 
-### 8. vr_ros2_bridge (UM ARM Lab) -- HTC VIVE FOCUSED
+### 9. vr_ros2_bridge (UM ARM Lab) -- HTC VIVE FOCUSED
 
 | Field | Details |
 |-------|---------|
@@ -449,6 +477,7 @@ Quest 2 (Unity App) --[MQTT]--> Mosquitto Broker --[MQTT-ROS2 Bridge]--> SteveRO
 |----------|-----|
 | **teleop_xr (RECOMMENDED)** | https://github.com/qrafty-ai/teleop_xr |
 | SpesRobotics/teleop | https://github.com/SpesRobotics/teleop |
+| Open Teach (358 stars) | https://github.com/aadhithya14/Open-Teach |
 | unity_ros_teleoperation | https://github.com/leggedrobotics/unity_ros_teleoperation |
 | meta_quest_teleoperation | https://github.com/PickNikRobotics/meta_quest_teleoperation |
 | Hand Tracking Streamer | https://www.meta.com/experiences/hand-tracking-streamer/26303946202523164/ |
