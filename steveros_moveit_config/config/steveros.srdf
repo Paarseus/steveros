@@ -6,10 +6,10 @@
 <robot name="steveros">
   <!--GROUPS: Representation of a set of joints and links as combind into a group.-->
   <group name="right_arm">
-    <chain base_link="Torso_Side_Right" tip_link="KB_C_501X_Right_Bayonet_Adapter_Hard_Stop"/>
+    <chain base_link="KD_B_102B_TORSO_BTM" tip_link="PRT0001"/>
   </group>
   <group name="left_arm">
-    <chain base_link="Torso_Side_Right" tip_link="KB_C_501X_Left_Bayonet_Adapter_Hard_Stop"/>
+    <chain base_link="KD_B_102B_TORSO_BTM" tip_link="PRT0001_2"/>
   </group>
   <group name="both_arms">
     <group name="right_arm"/>
@@ -17,7 +17,7 @@
   </group>
 
   <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot).-->
-  <virtual_joint name="virtual_joint" type="fixed" parent_frame="world" child_link="floating_base_link"/>
+  <virtual_joint name="virtual_joint" type="fixed" parent_frame="world" child_link="base"/>
 
   <!--GROUP STATES: Purpose: Define a named state for a particular group, in terms of joint values. This is useful to define states like 'home', 'tuck', etc.-->
   <group_state name="home" group="right_arm">
@@ -49,102 +49,102 @@
 
   <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links.-->
   <!-- Adjacent links (always in collision in default pose) -->
-  <disable_collisions link1="floating_base_link" link2="Torso_Side_Right" reason="Adjacent"/>
-  <disable_collisions link1="Torso_Side_Right" link2="KC_C_104R_PitchHardstopDriven" reason="Adjacent"/>
-  <disable_collisions link1="Torso_Side_Right" link2="KC_C_104L_PitchHardstopDriven" reason="Adjacent"/>
-  <disable_collisions link1="Torso_Side_Right" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Adjacent"/>
-  <disable_collisions link1="Torso_Side_Right" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Adjacent"/>
-  <disable_collisions link1="Torso_Side_Right" link2="imu" reason="Adjacent"/>
-  <disable_collisions link1="KC_C_104R_PitchHardstopDriven" link2="RS03_3" reason="Adjacent"/>
-  <disable_collisions link1="KC_C_104L_PitchHardstopDriven" link2="RS03_6" reason="Adjacent"/>
+  <disable_collisions link1="base" link2="KD_B_102B_TORSO_BTM" reason="Adjacent"/>
+  <disable_collisions link1="KD_B_102B_TORSO_BTM" link2="KC_C_101R_ShldYokeDrive" reason="Adjacent"/>
+  <disable_collisions link1="KD_B_102B_TORSO_BTM" link2="KD_C_101L_ShldYokeDrive" reason="Adjacent"/>
+  <disable_collisions link1="KD_B_102B_TORSO_BTM" link2="KD_D_102R" reason="Adjacent"/>
+  <disable_collisions link1="KD_B_102B_TORSO_BTM" link2="KD_D_102L_L_Hip_Yoke_Drive" reason="Adjacent"/>
+  <disable_collisions link1="KD_B_102B_TORSO_BTM" link2="imu" reason="Adjacent"/>
+  <disable_collisions link1="KC_C_101R_ShldYokeDrive" link2="RS03_3" reason="Adjacent"/>
+  <disable_collisions link1="KD_C_101L_ShldYokeDrive" link2="RS03_4" reason="Adjacent"/>
   <disable_collisions link1="RS03_3" link2="KC_C_202R" reason="Adjacent"/>
-  <disable_collisions link1="RS03_6" link2="KC_C_202L" reason="Adjacent"/>
+  <disable_collisions link1="RS03_4" link2="KD_C_301L_LowerBicepDrive" reason="Adjacent"/>
   <disable_collisions link1="KC_C_202R" link2="KC_C_401R_R_UpForearmDrive" reason="Adjacent"/>
-  <disable_collisions link1="KC_C_202L" link2="KC_C_401L_L_UpForearmDrive" reason="Adjacent"/>
-  <disable_collisions link1="KC_C_401R_R_UpForearmDrive" link2="KB_C_501X_Right_Bayonet_Adapter_Hard_Stop" reason="Adjacent"/>
-  <disable_collisions link1="KC_C_401L_L_UpForearmDrive" link2="KB_C_501X_Left_Bayonet_Adapter_Hard_Stop" reason="Adjacent"/>
-  <disable_collisions link1="KC_D_102R_R_Hip_Yoke_Drive" link2="RS03_4" reason="Adjacent"/>
-  <disable_collisions link1="KC_D_102L_L_Hip_Yoke_Drive" link2="RS03_5" reason="Adjacent"/>
-  <disable_collisions link1="RS03_4" link2="KC_D_301R_R_Femur_Lower_Drive" reason="Adjacent"/>
-  <disable_collisions link1="RS03_5" link2="KC_D_301L_L_Femur_Lower_Drive" reason="Adjacent"/>
-  <disable_collisions link1="KC_D_301R_R_Femur_Lower_Drive" link2="KC_D_401R_R_Shin_Drive" reason="Adjacent"/>
-  <disable_collisions link1="KC_D_301L_L_Femur_Lower_Drive" link2="KC_D_401L_L_Shin_Drive" reason="Adjacent"/>
-  <disable_collisions link1="KC_D_401R_R_Shin_Drive" link2="KB_D_501R_R_LEG_FOOT" reason="Adjacent"/>
-  <disable_collisions link1="KC_D_401L_L_Shin_Drive" link2="KB_D_501L_L_LEG_FOOT" reason="Adjacent"/>
+  <disable_collisions link1="KD_C_301L_LowerBicepDrive" link2="KC_C_401L_Up_Forearm_Drive" reason="Adjacent"/>
+  <disable_collisions link1="KC_C_401R_R_UpForearmDrive" link2="PRT0001" reason="Adjacent"/>
+  <disable_collisions link1="KC_C_401L_Up_Forearm_Drive" link2="PRT0001_2" reason="Adjacent"/>
+  <disable_collisions link1="KD_D_102R" link2="L_Hip_Roll_RS03_2" reason="Adjacent"/>
+  <disable_collisions link1="KD_D_102L_L_Hip_Yoke_Drive" link2="L_Hip_Roll_RS03" reason="Adjacent"/>
+  <disable_collisions link1="L_Hip_Roll_RS03_2" link2="KD_D_301R" reason="Adjacent"/>
+  <disable_collisions link1="L_Hip_Roll_RS03" link2="KD_D_301L_L_Femur_Lower_Drive" reason="Adjacent"/>
+  <disable_collisions link1="KD_D_301R" link2="KD_D_401R" reason="Adjacent"/>
+  <disable_collisions link1="KD_D_301L_L_Femur_Lower_Drive" link2="KD_D_401L_L_Shin_Drive" reason="Adjacent"/>
+  <disable_collisions link1="KD_D_401R" link2="RFootBushing_GPF_1517_12" reason="Adjacent"/>
+  <disable_collisions link1="KD_D_401L_L_Shin_Drive" link2="LFootBushing_GPF_1517_12" reason="Adjacent"/>
 
   <!-- Never in collision (too far apart) -->
-  <disable_collisions link1="floating_base_link" link2="KC_C_104R_PitchHardstopDriven" reason="Never"/>
-  <disable_collisions link1="floating_base_link" link2="KC_C_104L_PitchHardstopDriven" reason="Never"/>
-  <disable_collisions link1="floating_base_link" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="floating_base_link" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="floating_base_link" link2="imu" reason="Never"/>
-  <disable_collisions link1="floating_base_link" link2="RS03_3" reason="Never"/>
-  <disable_collisions link1="floating_base_link" link2="RS03_4" reason="Never"/>
-  <disable_collisions link1="floating_base_link" link2="RS03_5" reason="Never"/>
-  <disable_collisions link1="floating_base_link" link2="RS03_6" reason="Never"/>
-  <disable_collisions link1="imu" link2="KC_C_104R_PitchHardstopDriven" reason="Never"/>
-  <disable_collisions link1="imu" link2="KC_C_104L_PitchHardstopDriven" reason="Never"/>
-  <disable_collisions link1="imu" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="imu" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="base" link2="KC_C_101R_ShldYokeDrive" reason="Never"/>
+  <disable_collisions link1="base" link2="KD_C_101L_ShldYokeDrive" reason="Never"/>
+  <disable_collisions link1="base" link2="KD_D_102R" reason="Never"/>
+  <disable_collisions link1="base" link2="KD_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="base" link2="imu" reason="Never"/>
+  <disable_collisions link1="base" link2="RS03_3" reason="Never"/>
+  <disable_collisions link1="base" link2="RS03_4" reason="Never"/>
+  <disable_collisions link1="base" link2="L_Hip_Roll_RS03" reason="Never"/>
+  <disable_collisions link1="base" link2="L_Hip_Roll_RS03_2" reason="Never"/>
+  <disable_collisions link1="imu" link2="KC_C_101R_ShldYokeDrive" reason="Never"/>
+  <disable_collisions link1="imu" link2="KD_C_101L_ShldYokeDrive" reason="Never"/>
+  <disable_collisions link1="imu" link2="KD_D_102R" reason="Never"/>
+  <disable_collisions link1="imu" link2="KD_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
 
   <!-- Right arm vs left arm: shoulder links never collide -->
-  <disable_collisions link1="KC_C_104R_PitchHardstopDriven" link2="KC_C_104L_PitchHardstopDriven" reason="Never"/>
-  <disable_collisions link1="KC_C_104R_PitchHardstopDriven" link2="RS03_6" reason="Never"/>
-  <disable_collisions link1="KC_C_104L_PitchHardstopDriven" link2="RS03_3" reason="Never"/>
-  <disable_collisions link1="RS03_3" link2="RS03_6" reason="Never"/>
+  <disable_collisions link1="KC_C_101R_ShldYokeDrive" link2="KD_C_101L_ShldYokeDrive" reason="Never"/>
+  <disable_collisions link1="KC_C_101R_ShldYokeDrive" link2="RS03_4" reason="Never"/>
+  <disable_collisions link1="KD_C_101L_ShldYokeDrive" link2="RS03_3" reason="Never"/>
+  <disable_collisions link1="RS03_3" link2="RS03_4" reason="Never"/>
 
   <!-- Arms vs legs: never collide in normal operation -->
-  <disable_collisions link1="KC_C_104R_PitchHardstopDriven" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="KC_C_104R_PitchHardstopDriven" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="KC_C_104L_PitchHardstopDriven" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="KC_C_104L_PitchHardstopDriven" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="RS03_3" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="RS03_3" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="RS03_6" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="RS03_6" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="RS03_3" link2="RS03_4" reason="Never"/>
-  <disable_collisions link1="RS03_3" link2="RS03_5" reason="Never"/>
-  <disable_collisions link1="RS03_6" link2="RS03_4" reason="Never"/>
-  <disable_collisions link1="RS03_6" link2="RS03_5" reason="Never"/>
-  <disable_collisions link1="KC_C_202R" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="KC_C_202R" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="KC_C_202L" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="KC_C_202L" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="KC_C_101R_ShldYokeDrive" link2="KD_D_102R" reason="Never"/>
+  <disable_collisions link1="KC_C_101R_ShldYokeDrive" link2="KD_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="KD_C_101L_ShldYokeDrive" link2="KD_D_102R" reason="Never"/>
+  <disable_collisions link1="KD_C_101L_ShldYokeDrive" link2="KD_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="RS03_3" link2="KD_D_102R" reason="Never"/>
+  <disable_collisions link1="RS03_3" link2="KD_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="RS03_4" link2="KD_D_102R" reason="Never"/>
+  <disable_collisions link1="RS03_4" link2="KD_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="RS03_3" link2="L_Hip_Roll_RS03_2" reason="Never"/>
+  <disable_collisions link1="RS03_3" link2="L_Hip_Roll_RS03" reason="Never"/>
+  <disable_collisions link1="RS03_4" link2="L_Hip_Roll_RS03_2" reason="Never"/>
+  <disable_collisions link1="RS03_4" link2="L_Hip_Roll_RS03" reason="Never"/>
+  <disable_collisions link1="KC_C_202R" link2="KD_D_102R" reason="Never"/>
+  <disable_collisions link1="KC_C_202R" link2="KD_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="KD_C_301L_LowerBicepDrive" link2="KD_D_102R" reason="Never"/>
+  <disable_collisions link1="KD_C_301L_LowerBicepDrive" link2="KD_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
 
   <!-- Torso vs arm/leg links further down the chain -->
-  <disable_collisions link1="Torso_Side_Right" link2="RS03_3" reason="Never"/>
-  <disable_collisions link1="Torso_Side_Right" link2="RS03_4" reason="Never"/>
-  <disable_collisions link1="Torso_Side_Right" link2="RS03_5" reason="Never"/>
-  <disable_collisions link1="Torso_Side_Right" link2="RS03_6" reason="Never"/>
+  <disable_collisions link1="KD_B_102B_TORSO_BTM" link2="RS03_3" reason="Never"/>
+  <disable_collisions link1="KD_B_102B_TORSO_BTM" link2="RS03_4" reason="Never"/>
+  <disable_collisions link1="KD_B_102B_TORSO_BTM" link2="L_Hip_Roll_RS03" reason="Never"/>
+  <disable_collisions link1="KD_B_102B_TORSO_BTM" link2="L_Hip_Roll_RS03_2" reason="Never"/>
 
   <!-- Left/right leg pairs: far apart -->
-  <disable_collisions link1="KC_D_102R_R_Hip_Yoke_Drive" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="RS03_4" link2="RS03_5" reason="Never"/>
-  <disable_collisions link1="RS03_4" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="RS03_5" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="KC_D_301R_R_Femur_Lower_Drive" link2="KC_D_301L_L_Femur_Lower_Drive" reason="Never"/>
-  <disable_collisions link1="KC_D_301R_R_Femur_Lower_Drive" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="KC_D_301L_L_Femur_Lower_Drive" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="KC_D_301R_R_Femur_Lower_Drive" link2="RS03_5" reason="Never"/>
-  <disable_collisions link1="KC_D_301L_L_Femur_Lower_Drive" link2="RS03_4" reason="Never"/>
+  <disable_collisions link1="KD_D_102R" link2="KD_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="L_Hip_Roll_RS03_2" link2="L_Hip_Roll_RS03" reason="Never"/>
+  <disable_collisions link1="L_Hip_Roll_RS03_2" link2="KD_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="L_Hip_Roll_RS03" link2="KD_D_102R" reason="Never"/>
+  <disable_collisions link1="KD_D_301R" link2="KD_D_301L_L_Femur_Lower_Drive" reason="Never"/>
+  <disable_collisions link1="KD_D_301R" link2="KD_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="KD_D_301L_L_Femur_Lower_Drive" link2="KD_D_102R" reason="Never"/>
+  <disable_collisions link1="KD_D_301R" link2="L_Hip_Roll_RS03" reason="Never"/>
+  <disable_collisions link1="KD_D_301L_L_Femur_Lower_Drive" link2="L_Hip_Roll_RS03_2" reason="Never"/>
 
   <!-- Arm tips vs leg links: far apart in normal operation -->
-  <disable_collisions link1="KB_C_501X_Right_Bayonet_Adapter_Hard_Stop" link2="RS03_4" reason="Never"/>
-  <disable_collisions link1="KB_C_501X_Right_Bayonet_Adapter_Hard_Stop" link2="RS03_5" reason="Never"/>
-  <disable_collisions link1="KB_C_501X_Right_Bayonet_Adapter_Hard_Stop" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="KB_C_501X_Right_Bayonet_Adapter_Hard_Stop" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="KB_C_501X_Left_Bayonet_Adapter_Hard_Stop" link2="RS03_4" reason="Never"/>
-  <disable_collisions link1="KB_C_501X_Left_Bayonet_Adapter_Hard_Stop" link2="RS03_5" reason="Never"/>
-  <disable_collisions link1="KB_C_501X_Left_Bayonet_Adapter_Hard_Stop" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="KB_C_501X_Left_Bayonet_Adapter_Hard_Stop" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="PRT0001" link2="L_Hip_Roll_RS03_2" reason="Never"/>
+  <disable_collisions link1="PRT0001" link2="L_Hip_Roll_RS03" reason="Never"/>
+  <disable_collisions link1="PRT0001" link2="KD_D_102R" reason="Never"/>
+  <disable_collisions link1="PRT0001" link2="KD_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="PRT0001_2" link2="L_Hip_Roll_RS03_2" reason="Never"/>
+  <disable_collisions link1="PRT0001_2" link2="L_Hip_Roll_RS03" reason="Never"/>
+  <disable_collisions link1="PRT0001_2" link2="KD_D_102R" reason="Never"/>
+  <disable_collisions link1="PRT0001_2" link2="KD_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
 
   <!-- Arm forearm vs leg links -->
-  <disable_collisions link1="KC_C_401R_R_UpForearmDrive" link2="RS03_4" reason="Never"/>
-  <disable_collisions link1="KC_C_401R_R_UpForearmDrive" link2="RS03_5" reason="Never"/>
-  <disable_collisions link1="KC_C_401R_R_UpForearmDrive" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="KC_C_401R_R_UpForearmDrive" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="KC_C_401L_L_UpForearmDrive" link2="RS03_4" reason="Never"/>
-  <disable_collisions link1="KC_C_401L_L_UpForearmDrive" link2="RS03_5" reason="Never"/>
-  <disable_collisions link1="KC_C_401L_L_UpForearmDrive" link2="KC_D_102R_R_Hip_Yoke_Drive" reason="Never"/>
-  <disable_collisions link1="KC_C_401L_L_UpForearmDrive" link2="KC_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="KC_C_401R_R_UpForearmDrive" link2="L_Hip_Roll_RS03_2" reason="Never"/>
+  <disable_collisions link1="KC_C_401R_R_UpForearmDrive" link2="L_Hip_Roll_RS03" reason="Never"/>
+  <disable_collisions link1="KC_C_401R_R_UpForearmDrive" link2="KD_D_102R" reason="Never"/>
+  <disable_collisions link1="KC_C_401R_R_UpForearmDrive" link2="KD_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
+  <disable_collisions link1="KC_C_401L_Up_Forearm_Drive" link2="L_Hip_Roll_RS03_2" reason="Never"/>
+  <disable_collisions link1="KC_C_401L_Up_Forearm_Drive" link2="L_Hip_Roll_RS03" reason="Never"/>
+  <disable_collisions link1="KC_C_401L_Up_Forearm_Drive" link2="KD_D_102R" reason="Never"/>
+  <disable_collisions link1="KC_C_401L_Up_Forearm_Drive" link2="KD_D_102L_L_Hip_Yoke_Drive" reason="Never"/>
 </robot>

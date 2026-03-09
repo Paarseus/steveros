@@ -40,7 +40,7 @@ Visualization Manager:
       Enabled: true
   Enabled: true
   Global Options:
-    Fixed Frame: floating_base_link
+    Fixed Frame: base
     Frame Rate: 30
   Tools:
     - Class: rviz_default_plugins/MoveCamera

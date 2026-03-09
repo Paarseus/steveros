@@ -29,7 +29,7 @@ Visualization Manager:
         G: 100
         R: 100
   Global Options:
-    Fixed Frame: floating_base_link
+    Fixed Frame: base
   Name: root
   Tools:
     - Class: rviz_default_plugins/MoveCamera
