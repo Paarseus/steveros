@@ -41,6 +41,9 @@ struct JointState
   double effort   = std::numeric_limits<double>::quiet_NaN();
   double command_position = 0.0;
   double command_velocity = 0.0;
+  double command_effort = 0.0;   // feedforward torque (tau_ff)
+  double command_kp = 0.0;       // position stiffness gain
+  double command_kd = 0.0;       // velocity damping gain
   bool online = false;
 };
 

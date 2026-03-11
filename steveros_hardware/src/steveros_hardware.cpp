@@ -112,20 +112,36 @@ hardware_interface::CallbackReturn SteveROSHardware::on_init(
       joint_configs_[i].kd,
       joint_configs_[i].max_torque);
 
-    // Validate command interfaces: position required, velocity optional
+    // Validate command interfaces: position required; velocity, effort, kp, kd optional
     {
       bool has_position = false;
       for (const auto & ci : joint.command_interfaces) {
+        bool known = (ci.name == hardware_interface::HW_IF_POSITION ||
+                      ci.name == hardware_interface::HW_IF_VELOCITY ||
+                      ci.name == hardware_interface::HW_IF_EFFORT ||
+                      ci.name == "kp" || ci.name == "kd");
+        if (!known) {
+          RCLCPP_FATAL(
+            get_logger(),
+            "Joint '%s': unknown command interface '%s'.",
+            joint.name.c_str(), ci.name.c_str());
+          return hardware_interface::CallbackReturn::ERROR;
+        }
         if (ci.name == hardware_interface::HW_IF_POSITION) has_position = true;
       }
-      if (!has_position || joint.command_interfaces.size() > 2) {
+      if (!has_position) {
         RCLCPP_FATAL(
           get_logger(),
-          "Joint '%s' must have position (and optionally velocity) command interfaces.",
+          "Joint '%s' must have a position command interface.",
           joint.name.c_str());
         return hardware_interface::CallbackReturn::ERROR;
       }
     }
+
+    // Initialize command gains to URDF defaults
+    joint_states_[i].command_kp = joint_configs_[i].kp;
+    joint_states_[i].command_kd = joint_configs_[i].kd;
+    joint_states_[i].command_effort = 0.0;
 
     if (joint.state_interfaces.size() != 3) {
       RCLCPP_FATAL(
@@ -249,6 +265,9 @@ hardware_interface::CallbackReturn SteveROSHardware::on_activate(
     joint_states_[i].velocity = cfg.sign * static_cast<double>(fb.velocity);
     joint_states_[i].effort = cfg.sign * static_cast<double>(fb.torque);
     joint_states_[i].command_position = joint_states_[i].position;
+    joint_states_[i].command_effort = 0.0;
+    joint_states_[i].command_kp = cfg.kp;
+    joint_states_[i].command_kd = cfg.kd;
     hold_position_[i] = joint_states_[i].position;
   }
 
@@ -364,6 +383,15 @@ SteveROSHardware::export_command_interfaces()
     command_interfaces.emplace_back(
       info_.joints[i].name, hardware_interface::HW_IF_VELOCITY,
       &joint_states_[i].command_velocity);
+    command_interfaces.emplace_back(
+      info_.joints[i].name, hardware_interface::HW_IF_EFFORT,
+      &joint_states_[i].command_effort);
+    command_interfaces.emplace_back(
+      info_.joints[i].name, "kp",
+      &joint_states_[i].command_kp);
+    command_interfaces.emplace_back(
+      info_.joints[i].name, "kd",
+      &joint_states_[i].command_kd);
   }
   return command_interfaces;
 }
@@ -443,8 +471,9 @@ hardware_interface::return_type SteveROSHardware::write(
     cmd.motor_id = cfg.motor_id;
     cmd.p_des = motor_pos;
     cmd.v_des = static_cast<float>(cfg.sign * joint_states_[i].command_velocity);
-    cmd.kp = static_cast<float>(kp_scale * cfg.kp);
-    cmd.kd = static_cast<float>(cfg.kd);
+    cmd.kp = static_cast<float>(kp_scale * joint_states_[i].command_kp);
+    cmd.kd = static_cast<float>(joint_states_[i].command_kd);
+    cmd.t_ff = static_cast<float>(cfg.sign * joint_states_[i].command_effort);
     cmd.max_torque = static_cast<float>(cfg.max_torque);
 
     driver_->send_frame(robstride::encode_mit_command(cmd, params));

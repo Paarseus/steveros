@@ -35,6 +35,9 @@
         <param name="max">1.047198</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -52,6 +55,9 @@
         <param name="max">0.436332</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -69,6 +75,9 @@
         <param name="max">1.671886</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -86,6 +95,9 @@
         <param name="max">2.478368</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -103,6 +115,9 @@
         <param name="max">1.378810</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -122,6 +137,9 @@
         <param name="max">3.490658</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -139,6 +157,9 @@
         <param name="max">1.658063</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -156,6 +177,9 @@
         <param name="max">1.671886</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -173,6 +197,9 @@
         <param name="max">0</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -190,6 +217,9 @@
         <param name="max">1.378810</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -209,6 +239,9 @@
         <param name="max">1.047198</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -226,6 +259,9 @@
         <param name="max">0.209440</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -243,6 +279,9 @@
         <param name="max">1.570796</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -260,6 +299,9 @@
         <param name="max">0</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -277,6 +319,9 @@
         <param name="max">1.134464</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -296,6 +341,9 @@
         <param name="max">2.216568</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -313,6 +361,9 @@
         <param name="max">2.268928</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -330,6 +381,9 @@
         <param name="max">1.570796</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -347,6 +401,9 @@
         <param name="max">2.705260</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
@@ -364,6 +421,9 @@
         <param name="max">0.261799</param>
       </command_interface>
       <command_interface name="velocity"/>
+      <command_interface name="effort"/>
+      <command_interface name="kp"/>
+      <command_interface name="kd"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
