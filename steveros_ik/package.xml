@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>steveros_ik</name>
+  <version>0.2.0</version>
+  <description>Pink QP-based differential IK for steveros bimanual teleoperation</description>
+  <maintainer email="parsa@stevebots.com">Parsa Ghasemi</maintainer>
+  <license>Apache-2.0</license>
+
+  <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

@@ -1,0 +1,53 @@
+ik_node:
+  ros__parameters:
+    # QP solver settings
+    solver_backend: "daqp"
+    solver_damping: 0.01
+    safety_break: false
+    servo_rate: 50.0
+    trajectory_duration: 0.04
+
+    # Regularization
+    posture_cost: 0.001
+    damping_cost: 0.0
+
+    # Safety: max joint velocity (rad/s) — clamps IK output
+    max_joint_velocity: 2.0
+
+    # All joints controlled by IK (both arms, 10 DOF)
+    controlled_joints:
+      - dof_right_shoulder_pitch_03
+      - dof_right_shoulder_roll_03
+      - dof_right_shoulder_yaw_02
+      - dof_right_elbow_02
+      - dof_right_wrist_00
+      - dof_left_shoulder_pitch_03
+      - dof_left_shoulder_roll_03
+      - dof_left_shoulder_yaw_02
+      - dof_left_elbow_02
+      - dof_left_wrist_00
+
+    # End-effector tasks (parallel arrays)
+    ee_names: ["right_hand", "left_hand"]
+    ee_frames: ["PRT0001", "PRT0001_2"]
+    ee_position_costs: [1.0, 1.0]
+    ee_orientation_costs: [0.0, 0.0]
+    ee_lm_dampings: [1.0, 1.0]
+    ee_target_topics: ["/ik/right_hand_target", "/ik/left_hand_target"]
+    ee_command_topics:
+      - /right_arm_forward_controller/commands
+      - /left_arm_forward_controller/commands
+
+    # Output joint groups (which joints go to which trajectory controller)
+    right_hand_joints:
+      - dof_right_shoulder_pitch_03
+      - dof_right_shoulder_roll_03
+      - dof_right_shoulder_yaw_02
+      - dof_right_elbow_02
+      - dof_right_wrist_00
+    left_hand_joints:
+      - dof_left_shoulder_pitch_03
+      - dof_left_shoulder_roll_03
+      - dof_left_shoulder_yaw_02
+      - dof_left_elbow_02
+      - dof_left_wrist_00

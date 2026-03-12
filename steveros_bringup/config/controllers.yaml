@@ -17,6 +17,12 @@ controller_manager:
     left_leg_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
+    right_arm_forward_controller:
+      type: forward_command_controller/ForwardCommandController
+
+    left_arm_forward_controller:
+      type: forward_command_controller/ForwardCommandController
+
 right_arm_controller:
   ros__parameters:
     joints:
@@ -50,6 +56,26 @@ left_arm_controller:
       - velocity
     open_loop_control: false
     allow_integration_in_goal_trajectories: true
+
+right_arm_forward_controller:
+  ros__parameters:
+    joints:
+      - dof_right_shoulder_pitch_03
+      - dof_right_shoulder_roll_03
+      - dof_right_shoulder_yaw_02
+      - dof_right_elbow_02
+      - dof_right_wrist_00
+    interface_name: position
+
+left_arm_forward_controller:
+  ros__parameters:
+    joints:
+      - dof_left_shoulder_pitch_03
+      - dof_left_shoulder_roll_03
+      - dof_left_shoulder_yaw_02
+      - dof_left_elbow_02
+      - dof_left_wrist_00
+    interface_name: position
 
 right_leg_controller:
   ros__parameters:

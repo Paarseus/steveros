@@ -1,32 +1,360 @@
 Panels:
   - Class: rviz_common/Displays
+    Help Height: 70
     Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Pose2
+      Splitter Ratio: 0.5
+    Tree Height: 371
   - Class: rviz_common/Views
+    Expanded:
+      - /Current View1
     Name: Views
+    Splitter Ratio: 0.5
 Visualization Manager:
+  Class: ""
   Displays:
-    - Class: rviz_default_plugins/Grid
+    - Alpha: 0.5
+      Cell Size: 1
+      Class: rviz_default_plugins/Grid
+      Color: 160; 160; 164
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
       Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 10
+      Reference Frame: <Fixed Frame>
       Value: true
-    - Class: rviz_default_plugins/RobotModel
-      Name: RobotModel
-      Value: true
+    - Alpha: 1
+      Class: rviz_default_plugins/RobotModel
+      Collision Enabled: false
+      Description File: ""
+      Description Source: Topic
       Description Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
         Value: /robot_description
-    - Class: rviz_default_plugins/TF
-      Name: TF
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        KC_C_101R_ShldYokeDrive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        KC_C_202R:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        KC_C_401L_Up_Forearm_Drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        KC_C_401R_R_UpForearmDrive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        KD_B_102B_TORSO_BTM:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        KD_C_101L_ShldYokeDrive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        KD_C_301L_LowerBicepDrive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        KD_D_102L_L_Hip_Yoke_Drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        KD_D_102R:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        KD_D_301L_L_Femur_Lower_Drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        KD_D_301R:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        KD_D_401L_L_Shin_Drive:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        KD_D_401R:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LFootBushing_GPF_1517_12:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_Hip_Roll_RS03:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_Hip_Roll_RS03_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        Link Tree Style: Links in Alphabetic Order
+        PRT0001:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        PRT0001_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RFootBushing_GPF_1517_12:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RS03_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RS03_4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        imu:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Mass Properties:
+        Inertia: false
+        Mass: false
+      Name: RobotModel
+      TF Prefix: ""
+      Update Interval: 0
       Value: true
+      Visual Enabled: true
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Filter (blacklist): ""
+      Filter (whitelist): ""
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+        KC_C_101R_ShldYokeDrive:
+          Value: true
+        KC_C_202R:
+          Value: true
+        KC_C_401L_Up_Forearm_Drive:
+          Value: true
+        KC_C_401R_R_UpForearmDrive:
+          Value: true
+        KD_B_102B_TORSO_BTM:
+          Value: true
+        KD_C_101L_ShldYokeDrive:
+          Value: true
+        KD_C_301L_LowerBicepDrive:
+          Value: true
+        KD_D_102L_L_Hip_Yoke_Drive:
+          Value: true
+        KD_D_102R:
+          Value: true
+        KD_D_301L_L_Femur_Lower_Drive:
+          Value: true
+        KD_D_301R:
+          Value: true
+        KD_D_401L_L_Shin_Drive:
+          Value: true
+        KD_D_401R:
+          Value: true
+        LFootBushing_GPF_1517_12:
+          Value: true
+        L_Hip_Roll_RS03:
+          Value: true
+        L_Hip_Roll_RS03_2:
+          Value: true
+        PRT0001:
+          Value: true
+        PRT0001_2:
+          Value: true
+        RFootBushing_GPF_1517_12:
+          Value: true
+        RS03_3:
+          Value: true
+        RS03_4:
+          Value: true
+        base:
+          Value: true
+        imu:
+          Value: true
+        xr/controller_left/pose:
+          Value: true
+        xr/controller_right/pose:
+          Value: true
+        xr/head:
+          Value: true
+        xr_local:
+          Value: true
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: false
+      Tree:
+        base:
+          KD_B_102B_TORSO_BTM:
+            KC_C_101R_ShldYokeDrive:
+              RS03_3:
+                KC_C_202R:
+                  KC_C_401R_R_UpForearmDrive:
+                    PRT0001:
+                      {}
+            KD_C_101L_ShldYokeDrive:
+              RS03_4:
+                KD_C_301L_LowerBicepDrive:
+                  KC_C_401L_Up_Forearm_Drive:
+                    PRT0001_2:
+                      {}
+            KD_D_102L_L_Hip_Yoke_Drive:
+              L_Hip_Roll_RS03:
+                KD_D_301L_L_Femur_Lower_Drive:
+                  KD_D_401L_L_Shin_Drive:
+                    LFootBushing_GPF_1517_12:
+                      {}
+            KD_D_102R:
+              L_Hip_Roll_RS03_2:
+                KD_D_301R:
+                  KD_D_401R:
+                    RFootBushing_GPF_1517_12:
+                      {}
+            imu:
+              {}
+      Update Interval: 0
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.10000000149011612
+      Class: rviz_default_plugins/Pose
+      Color: 255; 25; 0
+      Enabled: false
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: Pose
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Arrow
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /ik/right_hand_actual
+      Value: false
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.10000000149011612
+      Class: rviz_default_plugins/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: Pose
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Arrow
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /xr/controller_right/pose
+      Value: true
+  Enabled: true
   Global Options:
+    Background Color: 48; 48; 48
     Fixed Frame: base
     Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+  Transformation:
+    Current:
+      Class: rviz_default_plugins/TF
+  Value: true
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 1.0
+      Distance: 3.6741783618927
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
       Focal Point:
         X: 0
         Y: 0
-        Z: 0.3
+        Z: 0.30000001192092896
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
       Name: Current View
-      Pitch: 0.4
-      Yaw: 0.8
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.34500035643577576
+      Target Frame: <Fixed Frame>
+      Value: Orbit (rviz_default_plugins)
+      Yaw: 5.808187961578369
+    Saved: ~
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 1011
+  Hide Left Dock: false
+  Hide Right Dock: false
+  QMainWindow State: 000000ff00000000fd0000000100000000000001c900000395fc0200000002fb000000100044006900730070006c006100790073010000003f000001f9000000cc00fffffffb0000000a00560069006500770073010000023e00000196000000a900ffffff000001d00000039500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Views:
+    collapsed: false
+  Width: 927
+  X: 66
+  Y: 32
