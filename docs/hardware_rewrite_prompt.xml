@@ -1,0 +1,115 @@
+<role>
+You are implementing a hardware interface rewrite for a 20-DOF humanoid robot
+(SteveROS). All research and architectural decisions are complete. Your job is
+to write clean, correct C++ code following the plan. Do not revisit architectural
+decisions — they are settled.
+</role>
+
+<authority>
+Read this file first. It is the authoritative spec. Follow it exactly:
+
+  docs/hardware_rewrite_research.md
+
+If the spec says poll(), use poll(). If it says 10 retries, implement 10 retries.
+If it says NAN-initialized states, use NAN. Do not second-guess it.
+
+The only reason to deviate is if the compiler rejects something or a runtime
+constraint makes it impossible. In that case, document why you deviated in a
+code comment.
+</authority>
+
+<files_to_read>
+Read ALL of these before you write any code:
+
+  steveros_hardware/include/steveros_hardware/robstride_protocol.hpp
+  steveros_hardware/include/steveros_hardware/steveros_hardware.hpp
+  steveros_hardware/src/steveros_hardware.cpp
+  steveros_hardware/CMakeLists.txt
+  steveros_hardware/steveros_hardware.xml
+  steveros_hardware/include/steveros_hardware/visibility_control.h
+  steveros_description/urdf/steveros_ros2_control.xacro
+  docs/hardware_rewrite_research.md
+</files_to_read>
+
+<build_order>
+Follow this order. Complete and compile each step before moving to the next.
+
+  <step number="1" title="Extend robstride_protocol.hpp">
+    - Add MotorType enum (RS01, RS02, RS03, RS04)
+    - Add MotorParams struct with per-model ranges from spec §1.1 table
+    - Add constexpr get_motor_params(MotorType) lookup function
+    - Add parse_motor_type(const std::string&amp;) for URDF string-to-enum
+    - Add encode_stop_clear_fault(int motor_id) — Type 4 with data[0]=1
+    - Add encode_param_write(int motor_id, uint16_t index, float value) — Type 18
+    - Update encode_mit_command() to accept const MotorParams&amp; for per-model encoding ranges
+    - Keep ALL existing functions working
+    - Verify: colcon build --packages-select steveros_hardware
+  </step>
+
+  <step number="2" title="Create RobstrideCanDriver">
+    New files:
+      robstride_can_driver.hpp (~100 lines)
+      robstride_can_driver.cpp (~300 lines)
+
+    Implement:
+    - SocketCAN open/close with CAN filter setup
+    - Background receive thread with poll(), 10ms timeout
+    - send_frame() with 10 retries, linear backoff (500μs base), send_mutex_
+    - Thread-safe feedback cache with feedback_mutex_
+    - clear_fault(), set_run_mode(), enable_motor(), disable_motor()
+    - Verify: colcon build --packages-select steveros_hardware
+  </step>
+
+  <step number="3" title="Rewrite SteveROSHardware">
+    Rewrite files:
+      steveros_hardware.hpp (~80 lines)
+      steveros_hardware.cpp (~280 lines)
+
+    Implement:
+    - JointState struct with NAN-initialized states
+    - Full lifecycle using RobstrideCanDriver API
+    - 4-phase activation sequence from spec ADR-2
+    - Per-model MotorParams via motor_type URDF param
+    - Preserve coordinate transforms from current code
+    - Preserve Kp ramp from current code
+    - Preserve feedback timeout checking from current code
+    - Verify: colcon build --packages-select steveros_hardware
+  </step>
+
+  <step number="4" title="Update build and config files">
+    - Add robstride_can_driver.cpp to CMakeLists.txt sources
+    - Add motor_type param to each joint in steveros_ros2_control.xacro
+    - Verify: full colcon build
+  </step>
+</build_order>
+
+<code_standards>
+  - Match existing style: 2-space indent, snake_case, const ref params
+  - Keep steveros_hardware namespace for hardware interface
+  - Keep robstride namespace for protocol layer
+  - Use RCLCPP_INFO/WARN/ERROR/FATAL for logging, match existing patterns
+  - Target ~990 total lines across all files per spec §3.1
+</code_standards>
+
+<constraints>
+  - No over-engineering: no templates, no CRTP, no factory patterns, no
+    abstractions for things that happen once. If three lines of straight code
+    work, do not wrap them in a helper class.
+  - Do not add features from the exclusion list (spec §3.4): no gravity comp,
+    no trajectory smoothing, no debug publishers, no velocity filtering.
+  - Do not refactor code you are not changing.
+  - Do not add comments explaining obvious code.
+  - Do not modify visibility_control.h or steveros_hardware.xml.
+  - Do not change the plugin name or namespace.
+  - Feedback decode ranges (position ±12.5, velocity ±45) are the SAME for all
+    motor types. Only command encoding ranges differ per model.
+</constraints>
+
+<escape_hatch>
+If you hit an implementation detail not covered in the spec, you may fetch ONE
+specific file from a reference repo to resolve it. State what you need before
+fetching. Do not browse entire repositories.
+
+  Protocol reference: github.com/RobStride/EDULITE_A3
+  Architecture reference: github.com/odriverobotics/ros_odrive
+</escape_hatch>
