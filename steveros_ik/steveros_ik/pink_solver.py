@@ -7,12 +7,17 @@ pattern, adapted for direct use without Isaac Lab dependencies.
 
 from __future__ import annotations
 
+import logging
+
 import numpy as np
+import pinocchio as pin
 import qpsolvers
 from pink import solve_ik
 from pink.tasks import DampingTask, FrameTask, PostureTask
 
 from .pink_configuration import PinkConfiguration
+
+logger = logging.getLogger(__name__)
 
 
 class PinkSolver:
@@ -28,15 +33,17 @@ class PinkSolver:
         urdf_path: str,
         controlled_joints: list[str],
         ee_configs: list[dict],
-        posture_cost: float = 1e-3,
+        posture_cost: float = 1e-2,
         damping_cost: float = 0.0,
         solver_backend: str = "daqp",
         solver_damping: float = 0.01,
         safety_break: bool = False,
         max_joint_velocity: float = 2.0,
+        state_blend_alpha: float = 0.2,
     ):
         self.configuration = PinkConfiguration(urdf_path, controlled_joints)
         self._max_joint_velocity = max_joint_velocity
+        self._state_blend_alpha = state_blend_alpha
 
         # Select QP solver (prefer requested, fall back to first available)
         if solver_backend in qpsolvers.available_solvers:
@@ -75,9 +82,10 @@ class PinkSolver:
         """Sync solver state from actual robot joint positions.
 
         On first call, initializes all joints from joint_states.
-        On subsequent calls, only updates non-controlled joints (e.g. legs)
-        so that FK stays accurate, while controlled joints use the solver's
-        internally integrated state (avoids feedback oscillation).
+        On subsequent calls, non-controlled joints (e.g. legs) are set
+        directly from joint_states. Controlled joints are alpha-blended
+        between the solver's integrated state and actual feedback to
+        prevent drift while avoiding feedback oscillation.
 
         Args:
             joint_positions: All joint positions from /joint_states (name -> value).
@@ -91,15 +99,19 @@ class PinkSolver:
             self.configuration.update(q)
             self._initialized = True
         else:
-            # Subsequent calls: only update non-controlled joints in full_q
             controlled_set = set(self.configuration.controlled_joint_names)
             full_q = self.configuration.full_q.copy()
+            alpha = self._state_blend_alpha
             for i, name in enumerate(self.configuration.all_joint_names):
+                actual = joint_positions.get(name)
+                if actual is None:
+                    continue
                 if name not in controlled_set:
-                    full_q[i] = joint_positions.get(name, full_q[i])
+                    full_q[i] = actual
+                else:
+                    full_q[i] = (1.0 - alpha) * full_q[i] + alpha * actual
             self.configuration.full_q = full_q
             # Re-run FK on full model with updated non-controlled joints
-            import pinocchio as pin
             pin.forwardKinematics(
                 self.configuration.full_model,
                 self.configuration.full_data,
@@ -127,7 +139,6 @@ class PinkSolver:
             name: EE task name.
             T: 4x4 transformation matrix.
         """
-        import pinocchio as pin
         se3 = pin.SE3(T[:3, :3], T[:3, 3])
         self.set_ee_target_se3(name, se3)
 
@@ -177,9 +188,8 @@ class PinkSolver:
                 velocity, -self._max_joint_velocity, self._max_joint_velocity,
             )
             self.configuration.integrate_inplace(velocity, dt)
-        except Exception:
-            # On failure, configuration.q is unchanged (still at actual state)
-            pass
+        except Exception as e:
+            logger.warning("IK solve failed: %s", e)
 
         return {
             name: float(self.configuration.q[i])

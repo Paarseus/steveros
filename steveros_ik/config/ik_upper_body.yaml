@@ -4,15 +4,18 @@ ik_node:
     solver_backend: "daqp"
     solver_damping: 0.01
     safety_break: false
-    servo_rate: 50.0
-    trajectory_duration: 0.04
+    servo_rate: 100.0
+    trajectory_duration: 0.02
 
-    # Regularization
-    posture_cost: 0.001
+    # Regularization (lower = more freedom to track hand)
+    posture_cost: 0.005
     damping_cost: 0.0
 
     # Safety: max joint velocity (rad/s) — clamps IK output
-    max_joint_velocity: 2.0
+    max_joint_velocity: 4.0
+
+    # Blend factor for controlled joint feedback (0 = open-loop, 1 = full feedback)
+    state_blend_alpha: 0.2
 
     # All joints controlled by IK (both arms, 10 DOF)
     controlled_joints:

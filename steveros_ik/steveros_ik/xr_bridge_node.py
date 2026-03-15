@@ -44,7 +44,7 @@ class XRBridgeNode(Node):
 
         # Parameters
         self.declare_parameter('trigger_button', 0)
-        self.declare_parameter('scale', 0.75)
+        self.declare_parameter('scale', 1.0)
         self.declare_parameter('initial_ee_right', [0.15, -0.18, 0.35])
         self.declare_parameter('initial_ee_left', [0.15, 0.18, 0.35])
         self.declare_parameter('axis_map', sum(DEFAULT_AXIS_MAP, []))  # flat 9 floats
@@ -65,6 +65,8 @@ class XRBridgeNode(Node):
 
         # Latest XR pose per hand (stored continuously, used on each frame)
         self._xr_pose: dict[str, np.ndarray | None] = {'right': None, 'left': None}
+        # Latest XR orientation per hand (quaternion: x, y, z, w)
+        self._xr_orient: dict[str, tuple | None] = {'right': None, 'left': None}
 
         # Actual EE positions from IK node FK (used on re-engage)
         self._actual_ee: dict[str, np.ndarray | None] = {'right': None, 'left': None}
@@ -166,9 +168,11 @@ class XRBridgeNode(Node):
         self._actual_ee[side] = np.array([pos.x, pos.y, pos.z])
 
     def _on_xr_pose(self, side: str, msg: PoseStamped):
-        """Store latest XR controller position and compute IK target if engaged."""
+        """Store latest XR controller position/orientation and compute IK target if engaged."""
         pos = msg.pose.position
+        ori = msg.pose.orientation
         self._xr_pose[side] = np.array([pos.x, pos.y, pos.z])
+        self._xr_orient[side] = (ori.x, ori.y, ori.z, ori.w)
 
         hand = self._hands[side]
         if not hand.engaged or hand.xr_reference is None:
@@ -192,14 +196,17 @@ class XRBridgeNode(Node):
             throttle_duration_sec=0.5,
         )
 
-        # Publish
+        # Publish with actual controller orientation
         target_msg = PoseStamped()
         target_msg.header.stamp = self.get_clock().now().to_msg()
         target_msg.header.frame_id = 'base'
         target_msg.pose.position.x = float(hand.current_target[0])
         target_msg.pose.position.y = float(hand.current_target[1])
         target_msg.pose.position.z = float(hand.current_target[2])
-        target_msg.pose.orientation.w = 1.0
+        target_msg.pose.orientation.x = ori.x
+        target_msg.pose.orientation.y = ori.y
+        target_msg.pose.orientation.z = ori.z
+        target_msg.pose.orientation.w = ori.w
         self._ik_pubs[side].publish(target_msg)
 
     def _on_joy(self, side: str, msg: Joy):

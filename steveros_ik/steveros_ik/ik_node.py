@@ -55,10 +55,11 @@ class IKNode(Node):
         self.declare_parameter('solver_backend', 'daqp')
         self.declare_parameter('solver_damping', 0.01)
         self.declare_parameter('safety_break', False)
-        self.declare_parameter('servo_rate', 50.0)
-        self.declare_parameter('posture_cost', 1e-3)
+        self.declare_parameter('servo_rate', 100.0)
+        self.declare_parameter('posture_cost', 1e-2)
         self.declare_parameter('damping_cost', 0.0)
         self.declare_parameter('max_joint_velocity', 2.0)
+        self.declare_parameter('state_blend_alpha', 0.2)
 
         # --- Controlled joints (all joints solved by IK) ---
         self.declare_parameter('controlled_joints', [
@@ -140,6 +141,7 @@ class IKNode(Node):
             solver_damping=self.get_parameter('solver_damping').value,
             safety_break=self.get_parameter('safety_break').value,
             max_joint_velocity=self.get_parameter('max_joint_velocity').value,
+            state_blend_alpha=self.get_parameter('state_blend_alpha').value,
         )
 
         # Build EE handles with subscribers and publishers
@@ -262,7 +264,11 @@ class IKNode(Node):
             actual_msg.pose.position.x = float(ee_se3.translation[0])
             actual_msg.pose.position.y = float(ee_se3.translation[1])
             actual_msg.pose.position.z = float(ee_se3.translation[2])
-            actual_msg.pose.orientation.w = 1.0
+            quat = pin.Quaternion(ee_se3.rotation)
+            actual_msg.pose.orientation.x = float(quat.coeffs()[0])
+            actual_msg.pose.orientation.y = float(quat.coeffs()[1])
+            actual_msg.pose.orientation.z = float(quat.coeffs()[2])
+            actual_msg.pose.orientation.w = float(quat.coeffs()[3])
             self._ee_actual_pubs[name].publish(actual_msg)
 
             if not handle.has_target:

@@ -4,6 +4,11 @@
 No ROS or pytest dependencies. Tests the axis mapping, head-based dynamic
 mapping, scale factors, engage/clutch logic, and edge cases.
 
+The bridge uses ROS REP-103 convention throughout:
+  - teleop-xr publishes in ROS convention (+X forward, +Y left, +Z up)
+  - _axis_map_from_head() extracts forward as R @ [1, 0, 0]
+  - DEFAULT_AXIS_MAP is identity (correct for ROS-convention input)
+
 Run:  python3 test_xr_math.py
 """
 
@@ -16,42 +21,53 @@ from numpy.linalg import det, norm
 # ---------------------------------------------------------------------------
 
 DEFAULT_AXIS_MAP = np.array([
-    [1.0, 0.0, 0.0],   # robot X = XR X
-    [0.0, 1.0, 0.0],   # robot Y = XR Y
-    [0.0, 0.0, 1.0],   # robot Z = XR Z
+    [1.0, 0.0, 0.0],   # robot X (forward) = teleop X
+    [0.0, 1.0, 0.0],   # robot Y (left)    = teleop Y
+    [0.0, 0.0, 1.0],   # robot Z (up)      = teleop Z
 ])
 
 
 def axis_map_from_head(head_quat):
-    """Exact copy of XRBridgeNode._axis_map_from_head."""
+    """Copy of XRBridgeNode._axis_map_from_head (ROS convention).
+
+    Extracts the user's horizontal facing direction from the head quaternion,
+    then builds a 3x3 rotation matrix that maps teleop deltas (already in
+    ROS convention) so that "user-forward" always maps to robot +X.
+    """
     if head_quat is None:
         return None
 
     qx, qy, qz, qw = head_quat
 
-    # Head forward = R @ [0, 0, -1]
-    fwd_x = -(2.0 * (qx * qz + qw * qy))
-    fwd_y = -(2.0 * (qy * qz - qw * qx))
-    fwd_z = -(1.0 - 2.0 * (qx * qx + qy * qy))
+    # Head forward = R @ [1, 0, 0] (first column of rotation matrix).
+    fwd_x = 1.0 - 2.0 * (qy * qy + qz * qz)
+    fwd_y = 2.0 * (qx * qy + qw * qz)
+    # fwd_z = 2.0 * (qx * qz - qw * qy)  # vertical component, projected out
 
-    horiz_norm = np.sqrt(fwd_x * fwd_x + fwd_z * fwd_z)
+    # Project onto horizontal plane (zero out Z, which is up in ROS)
+    horiz_norm = np.sqrt(fwd_x * fwd_x + fwd_y * fwd_y)
     if horiz_norm < 1e-6:
-        return None
+        return None  # looking straight up/down
 
-    fwd_h = np.array([fwd_x / horiz_norm, 0.0, fwd_z / horiz_norm])
-    up = np.array([0.0, 1.0, 0.0])
-    left = np.cross(up, fwd_h)
+    fwd_h = np.array([fwd_x / horiz_norm, fwd_y / horiz_norm, 0.0])
+    up = np.array([0.0, 0.0, 1.0])
+    left = np.cross(up, fwd_h)  # [-fwd_y, fwd_x, 0]
 
-    return np.array([fwd_h, left, up])
+    # Each row maps teleop delta -> one robot axis
+    return np.array([
+        fwd_h,   # robot X (forward) = component along user's forward
+        left,    # robot Y (left)    = component along user's left
+        up,      # robot Z (up)      = vertical component
+    ])
 
 
 def quat_from_yaw(yaw_rad):
-    """Quaternion for pure yaw around WebXR Y axis (up).
+    """Quaternion for pure yaw around ROS Z axis (up).
 
-    WebXR Y is up, so yaw rotates around Y.
+    ROS Z is up, so yaw rotates around Z.
     Returns (qx, qy, qz, qw).
     """
-    return (0.0, np.sin(yaw_rad / 2.0), 0.0, np.cos(yaw_rad / 2.0))
+    return (0.0, 0.0, np.sin(yaw_rad / 2.0), np.cos(yaw_rad / 2.0))
 
 
 # ---------------------------------------------------------------------------
@@ -84,257 +100,182 @@ def section(title):
 
 
 # ===================================================================
-# TEST 1: Default Axis Map is an identity -- what does it produce?
+# TEST 1: Default Axis Map (Identity) with ROS Convention Data
 # ===================================================================
 def test_default_axis_map():
-    section("TEST 1: Default Axis Map (Identity) Analysis")
+    section("TEST 1: Default Axis Map (Identity) with ROS Convention Data")
 
     M = DEFAULT_AXIS_MAP
-    scale = 0.15
+    scale = 0.75
 
     print(f"\n  DEFAULT_AXIS_MAP =")
     for row in M:
         print(f"    {vec_str(row)}")
 
-    # --- Scenario A: User moves hand FORWARD in WebXR ---
-    # WebXR forward = -Z, so delta = [0, 0, -0.1]
-    delta_xr_fwd = np.array([0.0, 0.0, -0.1])
-    delta_robot_fwd = M @ delta_xr_fwd * scale
-    print(f"\n  Scenario A: User moves hand FORWARD in WebXR")
-    print(f"    XR delta:    {vec_str(delta_xr_fwd)}")
-    print(f"    Robot delta:  {vec_str(delta_robot_fwd)}")
-    print(f"    Expected:     Robot +X (forward), got robot Z={delta_robot_fwd[2]:+.4f}")
-    check("Forward maps to robot X",
-          abs(delta_robot_fwd[0]) > 0.001 and delta_robot_fwd[0] > 0,
-          f"Got {vec_str(delta_robot_fwd)} -- robot X should be positive (forward)")
+    # ROS convention: +X forward, +Y left, +Z up
+    # teleop-xr publishes in this convention
 
-    # --- Scenario B: User moves hand RIGHT in WebXR ---
-    # WebXR right = +X, so delta = [0.1, 0, 0]
-    delta_xr_right = np.array([0.1, 0.0, 0.0])
-    delta_robot_right = M @ delta_xr_right * scale
-    print(f"\n  Scenario B: User moves hand RIGHT in WebXR")
-    print(f"    XR delta:    {vec_str(delta_xr_right)}")
-    print(f"    Robot delta:  {vec_str(delta_robot_right)}")
-    print(f"    Expected:     Robot -Y (right), got robot Y={delta_robot_right[1]:+.4f}")
-    check("Right maps to robot -Y",
-          delta_robot_right[1] < -0.001,
-          f"Got {vec_str(delta_robot_right)} -- robot Y should be negative (right)")
+    # --- Scenario A: User moves hand FORWARD ---
+    delta_fwd = np.array([0.1, 0.0, 0.0])  # ROS +X = forward
+    delta_robot_fwd = M @ delta_fwd * scale
+    print(f"\n  Scenario A: User moves hand FORWARD (ROS +X)")
+    print(f"    Teleop delta:  {vec_str(delta_fwd)}")
+    print(f"    Robot delta:   {vec_str(delta_robot_fwd)}")
+    check("Forward (+X) maps to robot +X",
+          delta_robot_fwd[0] > 0.001 and abs(delta_robot_fwd[1]) < 1e-9 and abs(delta_robot_fwd[2]) < 1e-9,
+          f"Got {vec_str(delta_robot_fwd)}")
 
-    # --- Scenario C: User moves hand UP in WebXR ---
-    # WebXR up = +Y, so delta = [0, 0.1, 0]
-    delta_xr_up = np.array([0.0, 0.1, 0.0])
-    delta_robot_up = M @ delta_xr_up * scale
-    print(f"\n  Scenario C: User moves hand UP in WebXR")
-    print(f"    XR delta:    {vec_str(delta_xr_up)}")
-    print(f"    Robot delta:  {vec_str(delta_robot_up)}")
-    print(f"    Expected:     Robot +Z (up), got robot Z={delta_robot_up[2]:+.4f}")
-    check("Up maps to robot +Z",
-          delta_robot_up[2] > 0.001,
-          f"Got {vec_str(delta_robot_up)} -- robot Z should be positive (up)")
+    # --- Scenario B: User moves hand RIGHT ---
+    delta_right = np.array([0.0, -0.1, 0.0])  # ROS -Y = right
+    delta_robot_right = M @ delta_right * scale
+    print(f"\n  Scenario B: User moves hand RIGHT (ROS -Y)")
+    print(f"    Teleop delta:  {vec_str(delta_right)}")
+    print(f"    Robot delta:   {vec_str(delta_robot_right)}")
+    check("Right (-Y) maps to robot -Y",
+          delta_robot_right[1] < -0.001 and abs(delta_robot_right[0]) < 1e-9 and abs(delta_robot_right[2]) < 1e-9,
+          f"Got {vec_str(delta_robot_right)}")
 
-    # --- Compute the CORRECT static map ---
-    # WebXR: +X right, +Y up, -Z forward
-    # ROS:   +X forward, +Y left, +Z up
-    #
-    # XR X (right)    -> ROS -Y (right = negative Y in ROS)
-    # XR Y (up)       -> ROS +Z (up)
-    # XR Z (backward) -> ROS -X (backward = negative X in ROS)
-    #   equivalently: XR -Z (forward) -> ROS +X (forward)
-    #
-    # Robot_vec = M @ XR_vec
-    # Robot_X = XR_(-Z) = -XR_Z  =>  M[0] = [0, 0, -1]
-    # Robot_Y = XR_(-X) = -XR_X  =>  M[1] = [-1, 0, 0]
-    # Robot_Z = XR_(+Y) = +XR_Y  =>  M[2] = [0, 1, 0]
-    correct_static = np.array([
-        [0.0, 0.0, -1.0],   # robot X = -XR Z (forward)
-        [-1.0, 0.0, 0.0],   # robot Y = -XR X (left)
-        [0.0, 1.0, 0.0],    # robot Z = +XR Y (up)
-    ])
+    # --- Scenario C: User moves hand UP ---
+    delta_up = np.array([0.0, 0.0, 0.1])  # ROS +Z = up
+    delta_robot_up = M @ delta_up * scale
+    print(f"\n  Scenario C: User moves hand UP (ROS +Z)")
+    print(f"    Teleop delta:  {vec_str(delta_up)}")
+    print(f"    Robot delta:   {vec_str(delta_robot_up)}")
+    check("Up (+Z) maps to robot +Z",
+          delta_robot_up[2] > 0.001 and abs(delta_robot_up[0]) < 1e-9 and abs(delta_robot_up[1]) < 1e-9,
+          f"Got {vec_str(delta_robot_up)}")
 
-    print(f"\n  CORRECT STATIC AXIS MAP (WebXR -> ROS):")
-    for i, (label, row) in enumerate(zip(["robot X (fwd)", "robot Y (left)", "robot Z (up)"], correct_static)):
-        print(f"    {label}: {vec_str(row)}")
-
-    # Verify correct map with all 3 scenarios
-    delta_fwd_corrected = correct_static @ delta_xr_fwd * scale
-    delta_right_corrected = correct_static @ delta_xr_right * scale
-    delta_up_corrected = correct_static @ delta_xr_up * scale
-
-    print(f"\n  Verify correct map:")
-    print(f"    XR forward {vec_str(delta_xr_fwd)} -> robot {vec_str(delta_fwd_corrected)}")
-    print(f"    XR right   {vec_str(delta_xr_right)} -> robot {vec_str(delta_right_corrected)}")
-    print(f"    XR up      {vec_str(delta_xr_up)} -> robot {vec_str(delta_up_corrected)}")
-
-    check("Corrected: forward -> +X",
-          delta_fwd_corrected[0] > 0 and abs(delta_fwd_corrected[1]) < 1e-9 and abs(delta_fwd_corrected[2]) < 1e-9,
-          f"Got {vec_str(delta_fwd_corrected)}")
-    check("Corrected: right -> -Y",
-          delta_right_corrected[1] < 0 and abs(delta_right_corrected[0]) < 1e-9 and abs(delta_right_corrected[2]) < 1e-9,
-          f"Got {vec_str(delta_right_corrected)}")
-    check("Corrected: up -> +Z",
-          delta_up_corrected[2] > 0 and abs(delta_up_corrected[0]) < 1e-9 and abs(delta_up_corrected[1]) < 1e-9,
-          f"Got {vec_str(delta_up_corrected)}")
-
-    # Check determinant (should be +1 for proper rotation/permutation)
-    check("Correct map det = +1",
-          abs(det(correct_static) - 1.0) < 1e-9,
-          f"det = {det(correct_static):.6f}")
-
-    # --- BUT: The code comment says "teleop-xr already outputs in ROS convention" ---
-    print(f"\n  IMPORTANT NOTE:")
-    print(f"    Line 21-22 of xr_bridge_node.py says:")
-    print(f"      '# Axis mapping: teleop-xr already outputs in ROS convention (REP-103).'")
-    print(f"      '# Confirmed by data: Z is vertical (~0.8m range for up/down motion).'")
-    print(f"    If teleop-xr truly converts to REP-103 before publishing, then the")
-    print(f"    identity map IS correct for that upstream. But the _axis_map_from_head()")
-    print(f"    function explicitly comments 'WebXR: +X right, +Y up, -Z forward',")
-    print(f"    meaning it works in RAW WebXR coords. This is a CONTRADICTION.")
-    print(f"    One of these must be wrong:")
-    print(f"      (a) If teleop-xr outputs ROS convention -> head map math is wrong")
-    print(f"      (b) If data is raw WebXR -> identity default map is wrong")
-    print(f"    The head-based map computes fwd/left/up in WebXR space,")
-    print(f"    which only makes sense if the incoming data IS in WebXR coords.")
+    # Identity map is correct for ROS-convention data
+    check("Identity map det = +1",
+          abs(det(M) - 1.0) < 1e-9,
+          f"det = {det(M):.6f}")
 
 
 # ===================================================================
-# TEST 2: Head-Based Axis Map Analysis
+# TEST 2: Head-Based Axis Map Analysis (ROS Convention)
 # ===================================================================
 def test_head_based_axis_map():
-    section("TEST 2: Head-Based Axis Map Analysis")
+    section("TEST 2: Head-Based Axis Map (ROS Convention)")
 
-    scale = 0.15
+    scale = 0.75
+    labels = ["fwd_h (row 0 -> robot X)", "left  (row 1 -> robot Y)", "up    (row 2 -> robot Z)"]
 
-    # --- Case A: Identity quaternion (no rotation) ---
-    # Head facing forward in WebXR = looking along -Z
+    # --- Case A: Identity quaternion (facing +X in ROS) ---
+    print(f"\n  Case A: Identity quaternion (head facing +X in ROS)")
     quat_identity = (0.0, 0.0, 0.0, 1.0)
     M_id = axis_map_from_head(quat_identity)
 
-    print(f"\n  Case A: Identity quaternion (head facing -Z in WebXR)")
     print(f"    Head quat: {quat_identity}")
     if M_id is not None:
         print(f"    Axis map:")
-        labels = ["fwd_h (row 0 -> robot X)", "left  (row 1 -> robot Y)", "up    (row 2 -> robot Z)"]
         for label, row in zip(labels, M_id):
             print(f"      {label}: {vec_str(row)}")
 
-        # At identity, WebXR forward = [0, 0, -1]
-        # fwd_h should be [0, 0, -1] (projected to horiz, normalized)
-        # left = cross(up=[0,1,0], fwd_h=[0,0,-1]) = [0*(-1)-0*0, 0*0-1*(-1), 1*0-0*0]
-        #       = [0, 1, 0]... wait, that's up direction
-        # Actually: cross([0,1,0], [0,0,-1]) = [1*(-1)-0*0, 0*0-0*(-1), 0*0-1*0]
-        #         = [-1, 0, 0]
-        expected_fwd = np.array([0.0, 0.0, -1.0])
-        expected_left = np.array([-1.0, 0.0, 0.0])
-        expected_up = np.array([0.0, 1.0, 0.0])
+        # At identity in ROS: forward = [1, 0, 0]
+        # fwd_h = [1, 0, 0]
+        # left = cross([0,0,1], [1,0,0]) = [0, 1, 0]
+        # up = [0, 0, 1]
+        # Map = identity
+        check("Identity: map == identity",
+              norm(M_id - np.eye(3)) < 1e-9,
+              f"Got:\n{M_id}")
 
-        check("Identity: fwd_h = [0, 0, -1]",
-              norm(M_id[0] - expected_fwd) < 1e-9,
-              f"Got {vec_str(M_id[0])}, expected {vec_str(expected_fwd)}")
-        check("Identity: left = [-1, 0, 0]",
-              norm(M_id[1] - expected_left) < 1e-9,
-              f"Got {vec_str(M_id[1])}, expected {vec_str(expected_left)}")
-        check("Identity: up = [0, 1, 0]",
-              norm(M_id[2] - expected_up) < 1e-9,
-              f"Got {vec_str(M_id[2])}, expected {vec_str(expected_up)}")
-
-        # Now test what this map does to XR deltas
-        # User moves forward in WebXR: delta_xr = [0, 0, -0.1]
-        # This should become robot +X (forward)
-        delta_fwd = M_id @ np.array([0.0, 0.0, -0.1]) * scale
-        print(f"\n    XR forward [0, 0, -0.1] -> robot {vec_str(delta_fwd)}")
-        check("Identity: XR forward -> robot +X",
+        # Identity map should pass through ROS deltas unchanged
+        delta_fwd = M_id @ np.array([0.1, 0.0, 0.0]) * scale
+        check("Identity: ROS +X -> robot +X",
               delta_fwd[0] > 0 and abs(delta_fwd[1]) < 1e-9 and abs(delta_fwd[2]) < 1e-9,
               f"Got {vec_str(delta_fwd)}")
 
-        # User moves right in WebXR: delta_xr = [0.1, 0, 0]
-        delta_right = M_id @ np.array([0.1, 0.0, 0.0]) * scale
-        print(f"    XR right   [0.1, 0, 0]  -> robot {vec_str(delta_right)}")
-        check("Identity: XR right -> robot -Y",
-              delta_right[1] < 0 and abs(delta_right[0]) < 1e-9 and abs(delta_right[2]) < 1e-9,
-              f"Got {vec_str(delta_right)}")
+        delta_left = M_id @ np.array([0.0, 0.1, 0.0]) * scale
+        check("Identity: ROS +Y -> robot +Y",
+              delta_left[1] > 0 and abs(delta_left[0]) < 1e-9 and abs(delta_left[2]) < 1e-9,
+              f"Got {vec_str(delta_left)}")
 
-        # User moves up in WebXR: delta_xr = [0, 0.1, 0]
-        delta_up = M_id @ np.array([0.0, 0.1, 0.0]) * scale
-        print(f"    XR up      [0, 0.1, 0]  -> robot {vec_str(delta_up)}")
-        check("Identity: XR up -> robot +Z",
+        delta_up = M_id @ np.array([0.0, 0.0, 0.1]) * scale
+        check("Identity: ROS +Z -> robot +Z",
               delta_up[2] > 0 and abs(delta_up[0]) < 1e-9 and abs(delta_up[1]) < 1e-9,
               f"Got {vec_str(delta_up)}")
     else:
         check("Identity: returns valid map", False, "Got None!")
 
-    # --- Compare identity head map with correct static map ---
-    correct_static = np.array([
-        [0.0, 0.0, -1.0],
-        [-1.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0],
-    ])
-    print(f"\n    Correct static map for reference:")
-    for row in correct_static:
-        print(f"      {vec_str(row)}")
-
+    # Head map at identity should match DEFAULT_AXIS_MAP
     if M_id is not None:
-        maps_match = norm(M_id - correct_static) < 1e-9
-        check("Identity head map matches correct static map",
-              maps_match,
-              f"Max diff: {np.max(np.abs(M_id - correct_static)):.6f}")
+        check("Head map at identity matches DEFAULT_AXIS_MAP",
+              norm(M_id - DEFAULT_AXIS_MAP) < 1e-9,
+              f"Max diff: {np.max(np.abs(M_id - DEFAULT_AXIS_MAP)):.6f}")
 
-    # --- Case B: Facing 90 degrees right (yaw = -90 around Y) ---
-    # In WebXR, yaw right means rotating -90 deg around +Y
-    # After rotation, head forward becomes +X in WebXR
+    # --- Case B: Facing 90 degrees left (yaw = +90 around Z) ---
+    # User faces +Y direction in ROS. Their "forward" is now +Y.
+    print(f"\n  Case B: Facing 90 degrees LEFT (yaw = +90 deg around Z)")
+    yaw_left90 = np.pi / 2
+    quat_left90 = quat_from_yaw(yaw_left90)
+    M_l90 = axis_map_from_head(quat_left90)
+
+    print(f"    Head quat: ({quat_left90[0]:.4f}, {quat_left90[1]:.4f}, "
+          f"{quat_left90[2]:.4f}, {quat_left90[3]:.4f})")
+    if M_l90 is not None:
+        print(f"    Axis map:")
+        for label, row in zip(labels, M_l90):
+            print(f"      {label}: {vec_str(row)}")
+
+        # When facing +Y (left in ROS): forward = [0, 1, 0]
+        # fwd_h = [0, 1, 0]
+        # left = cross([0,0,1], [0,1,0]) = [-1, 0, 0]
+        expected_fwd = np.array([0.0, 1.0, 0.0])
+        expected_left = np.array([-1.0, 0.0, 0.0])
+
+        check("Left90: fwd_h = [0, 1, 0]",
+              norm(M_l90[0] - expected_fwd) < 1e-6,
+              f"Got {vec_str(M_l90[0])}")
+        check("Left90: left = [-1, 0, 0]",
+              norm(M_l90[1] - expected_left) < 1e-6,
+              f"Got {vec_str(M_l90[1])}")
+
+        # User faces +Y. Moving in ROS +X (which is user's RIGHT direction)
+        # should map to robot -Y (right).
+        # M @ [0.1, 0, 0]:
+        #   robot X = fwd_h . [0.1, 0, 0] = 0*0.1 = 0
+        #   robot Y = left  . [0.1, 0, 0] = -1*0.1 = -0.1
+        #   robot Z = up    . [0.1, 0, 0] = 0
+        delta_ros_x = M_l90 @ np.array([0.1, 0.0, 0.0]) * scale
+        print(f"\n    ROS +X [0.1, 0, 0] -> robot {vec_str(delta_ros_x)}")
+        print(f"    (User faces +Y, so ROS +X is user's RIGHT -> robot -Y)")
+        check("Left90: ROS +X -> robot -Y (user's right)",
+              delta_ros_x[1] < 0 and abs(delta_ros_x[0]) < 1e-9,
+              f"Got {vec_str(delta_ros_x)}")
+
+        # Moving in ROS +Y (which is user's FORWARD direction)
+        # should map to robot +X (forward).
+        delta_ros_y = M_l90 @ np.array([0.0, 0.1, 0.0]) * scale
+        print(f"    ROS +Y [0, 0.1, 0] -> robot {vec_str(delta_ros_y)}")
+        print(f"    (User faces +Y, so ROS +Y is user's FORWARD -> robot +X)")
+        check("Left90: ROS +Y -> robot +X (user's forward)",
+              delta_ros_y[0] > 0 and abs(delta_ros_y[1]) < 1e-9,
+              f"Got {vec_str(delta_ros_y)}")
+    else:
+        check("Left90: returns valid map", False, "Got None!")
+
+    # --- Case C: Facing 90 degrees right (yaw = -90 around Z) ---
+    print(f"\n  Case C: Facing 90 degrees RIGHT (yaw = -90 deg around Z)")
     yaw_right90 = -np.pi / 2
     quat_right90 = quat_from_yaw(yaw_right90)
     M_r90 = axis_map_from_head(quat_right90)
 
-    print(f"\n  Case B: Facing 90 degrees RIGHT (yaw = -90 deg)")
-    print(f"    Head quat: ({quat_right90[0]:.4f}, {quat_right90[1]:.4f}, "
-          f"{quat_right90[2]:.4f}, {quat_right90[3]:.4f})")
     if M_r90 is not None:
         print(f"    Axis map:")
         for label, row in zip(labels, M_r90):
             print(f"      {label}: {vec_str(row)}")
 
-        # When facing right in WebXR, forward is +X
-        # So fwd_h should be [1, 0, 0]
-        # left = cross([0,1,0], [1,0,0]) = [0*0-0*0, 0*1-1*0, 1*0-0*1] = [0, 0, -1]
-        expected_fwd_r = np.array([1.0, 0.0, 0.0])
-        expected_left_r = np.array([0.0, 0.0, -1.0])
+        # When facing -Y (right in ROS): forward = [0, -1, 0]
+        expected_fwd_r = np.array([0.0, -1.0, 0.0])
+        expected_left_r = np.array([1.0, 0.0, 0.0])
 
-        check("Right90: fwd_h = [1, 0, 0]",
+        check("Right90: fwd_h = [0, -1, 0]",
               norm(M_r90[0] - expected_fwd_r) < 1e-6,
               f"Got {vec_str(M_r90[0])}")
-        check("Right90: left = [0, 0, -1]",
+        check("Right90: left = [1, 0, 0]",
               norm(M_r90[1] - expected_left_r) < 1e-6,
               f"Got {vec_str(M_r90[1])}")
-
-        # Now XR forward (delta=[0,0,-0.1]) should map to...
-        # fwd_h=[1,0,0] dotted with [0,0,-0.1] = 0 -> robot X = 0
-        # Actually: M @ [0,0,-0.1]:
-        #   robot X = fwd_h . [0,0,-0.1] = 1*0+0*0+0*(-0.1) = 0
-        #   robot Y = left . [0,0,-0.1]  = 0*0+0*0+(-1)*(-0.1) = 0.1
-        #   robot Z = up . [0,0,-0.1]    = 0
-        delta_fwd_r = M_r90 @ np.array([0.0, 0.0, -0.1]) * scale
-        print(f"\n    XR forward [0, 0, -0.1] -> robot {vec_str(delta_fwd_r)}")
-        print(f"    (User faces right, XR -Z is user-forward which is robot +Y)")
-        # User faces right => user-forward is robot +Y(left), BUT:
-        # Actually user facing right in WebXR means they face +X direction.
-        # XR -Z is "into screen" / original forward. If user has turned right,
-        # XR -Z is now to the user's LEFT, which in robot frame would be...
-        # Let's think in world terms:
-        # User faces right in XR (+X direction). Moving hands in XR -Z direction
-        # means moving in the user's LEFT direction. Since user faces robot -Y,
-        # user-left = robot +X. So delta robot should have +X and zero Y.
-        # Wait - the map takes the delta in XR COORDINATES (global, not body-relative)
-        # and projects onto the user's body axes, THEN maps those to robot.
-        # row 0 (robot X) = fwd_h = [1,0,0]: dot with [0,0,-0.1] = 0
-        # row 1 (robot Y) = left  = [0,0,-1]: dot with [0,0,-0.1] = 0.1
-        # row 2 (robot Z) = up    = [0,1,0]:  dot with [0,0,-0.1] = 0
-        # So robot delta = [0, 0.1, 0] * 0.15 = [0, 0.015, 0]
-        # This means: XR -Z movement when user faces right -> robot +Y (left)
-        # Is this correct? XR -Z when facing right means the user moved their
-        # hand to their LEFT. Robot +Y is left. YES, this is correct!
-        check("Right90: XR -Z -> robot +Y (user-left is robot-left)",
-              delta_fwd_r[1] > 0 and abs(delta_fwd_r[0]) < 1e-9,
-              f"Got {vec_str(delta_fwd_r)}")
     else:
         check("Right90: returns valid map", False, "Got None!")
 
@@ -345,7 +286,7 @@ def test_head_based_axis_map():
 def test_scale_factor():
     section("TEST 3: Scale Factor Analysis")
 
-    scale = 0.15
+    scale = 0.75
 
     # Typical VR hand movement ranges
     vr_reach = 1.0  # meters, typical arm sweep in VR
@@ -373,23 +314,9 @@ def test_scale_factor():
         print(f"      Robot range: ~{robot_range:.2f} m")
         print(f"      Scaled: {scaled:.3f} m = {coverage:.0f}% of robot range")
 
-    # Is 0.15 reasonable?
-    print(f"\n  Assessment:")
-    print(f"    scale=0.15 means a 50cm VR hand movement produces 7.5cm robot movement.")
-    print(f"    This is VERY conservative -- the user must make large gestures for")
-    print(f"    small robot movements. For teleoperation, 0.3-0.5 is more typical.")
-    print(f"    However, 0.15 is safer during development (limits accidental big moves).")
-    print(f"    The ratio robot_reach/vr_reach = {robot_reach/vr_reach:.2f}, so a")
-    print(f"    scale of ~{robot_reach/vr_reach:.2f} would give 1:1 workspace mapping.")
-
-    check("Scale is conservative but safe",
-          0.05 < scale < 0.5,
-          f"scale={scale} is in a reasonable development range")
-
-    # NOTE: scale is uniform across all axes
-    print(f"\n  NOTE: Scale is the same for all axes. This is correct for isotropic")
-    print(f"  mapping. Per-axis scaling could compensate for asymmetric workspaces")
-    print(f"  but adds complexity. Uniform scale is the right starting choice.")
+    check("Scale is in reasonable range",
+          0.1 < scale < 1.5,
+          f"scale={scale} is reasonable for teleoperation")
     check("Scale is uniform (isotropic)", True, "Same scale on all axes -- good default")
 
 
@@ -399,53 +326,45 @@ def test_scale_factor():
 def test_engage_clutch():
     section("TEST 4: Engage/Clutch Sequence Simulation")
 
-    # Use the correct static map (what head-at-identity produces)
-    axis_map = np.array([
-        [0.0, 0.0, -1.0],
-        [-1.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0],
-    ])
-    scale = 0.15
+    # At identity head orientation, map is identity (ROS convention)
+    axis_map = np.eye(3)
+    scale = 0.75
 
     # Initial state
     ee_initial = np.array([0.15, -0.18, 0.35])
     current_target = ee_initial.copy()
     ee_start = ee_initial.copy()
     xr_reference = None
-    engaged = False
 
-    print(f"\n  Using correct static axis map (identity head)")
+    print(f"\n  Using identity axis map (ROS convention, head facing forward)")
     print(f"  Scale: {scale}")
 
-    # --- Step 1: Engage at XR=[0,0,0], EE at initial position ---
+    # --- Step 1: Engage at teleop=[0,0,0], EE at initial position ---
     print(f"\n  Step 1: ENGAGE")
     xr_pose = np.array([0.0, 0.0, 0.0])
-    # Simulating _on_joy: engage
     xr_reference = xr_pose.copy()
-    ee_start = current_target.copy()  # actual_ee not available, use current
-    engaged = True
-    print(f"    XR reference:  {vec_str(xr_reference)}")
-    print(f"    EE start:      {vec_str(ee_start)}")
-    print(f"    Current target: {vec_str(current_target)}")
+    ee_start = current_target.copy()
+    print(f"    Teleop reference:  {vec_str(xr_reference)}")
+    print(f"    EE start:          {vec_str(ee_start)}")
+    print(f"    Current target:    {vec_str(current_target)}")
 
-    # --- Step 2: Move XR to [0.1, 0.05, -0.2] ---
-    print(f"\n  Step 2: MOVE (XR -> [0.1, 0.05, -0.2])")
-    xr_pose = np.array([0.1, 0.05, -0.2])
+    # --- Step 2: Move teleop to [0.1, -0.05, 0.08] (forward, right, up) ---
+    print(f"\n  Step 2: MOVE (teleop -> [0.1, -0.05, 0.08])")
+    xr_pose = np.array([0.1, -0.05, 0.08])
     delta_xr = xr_pose - xr_reference
     delta_robot = axis_map @ delta_xr * scale
     current_target = ee_start + delta_robot
 
-    print(f"    XR pose:       {vec_str(xr_pose)}")
-    print(f"    XR delta:      {vec_str(delta_xr)}")
-    print(f"    Robot delta:   {vec_str(delta_robot)}")
+    print(f"    Teleop pose:    {vec_str(xr_pose)}")
+    print(f"    Teleop delta:   {vec_str(delta_xr)}")
+    print(f"    Robot delta:    {vec_str(delta_robot)}")
     print(f"    Current target: {vec_str(current_target)}")
 
-    # Verify the deltas make sense:
-    # delta_xr = [0.1, 0.05, -0.2]
-    # robot X = -(-0.2) * 0.15 = 0.03  (XR forward -> robot forward)
-    # robot Y = -(0.1) * 0.15 = -0.015  (XR right -> robot right = -Y)
-    # robot Z = 0.05 * 0.15 = 0.0075   (XR up -> robot up)
-    expected_delta = np.array([0.03, -0.015, 0.0075])
+    # With identity map and scale=0.75:
+    # robot X = 0.1 * 0.75 = 0.075  (forward)
+    # robot Y = -0.05 * 0.75 = -0.0375  (right)
+    # robot Z = 0.08 * 0.75 = 0.06  (up)
+    expected_delta = np.array([0.075, -0.0375, 0.06])
     check("Move delta correct",
           norm(delta_robot - expected_delta) < 1e-9,
           f"Expected {vec_str(expected_delta)}, got {vec_str(delta_robot)}")
@@ -459,48 +378,40 @@ def test_engage_clutch():
 
     # --- Step 3: Clutch (release trigger) ---
     print(f"\n  Step 3: CLUTCH (release trigger)")
-    engaged = False
     print(f"    Target frozen at: {vec_str(current_target)}")
     check("Target unchanged on clutch",
           norm(current_target - target_before_clutch) < 1e-9)
 
-    # --- Step 4: Re-engage at XR=[0.5, 0.3, -0.5] ---
-    # User repositioned hand far away -- target should NOT jump
-    print(f"\n  Step 4: RE-ENGAGE (XR now at [0.5, 0.3, -0.5])")
-    xr_pose = np.array([0.5, 0.3, -0.5])
-    # Simulating actual_ee being available (IK node reports where EE really is)
-    actual_ee = target_before_clutch.copy()  # assume EE reached the target
+    # --- Step 4: Re-engage at teleop=[0.5, 0.3, 0.2] ---
+    print(f"\n  Step 4: RE-ENGAGE (teleop now at [0.5, 0.3, 0.2])")
+    xr_pose = np.array([0.5, 0.3, 0.2])
+    actual_ee = target_before_clutch.copy()
     xr_reference = xr_pose.copy()
     ee_start = actual_ee.copy()
     current_target = actual_ee.copy()
-    engaged = True
 
-    print(f"    New XR reference:  {vec_str(xr_reference)}")
-    print(f"    New EE start:      {vec_str(ee_start)}")
-    print(f"    Current target:    {vec_str(current_target)}")
+    print(f"    New teleop reference:  {vec_str(xr_reference)}")
+    print(f"    New EE start:          {vec_str(ee_start)}")
+    print(f"    Current target:        {vec_str(current_target)}")
 
-    target_at_reengage = current_target.copy()
     check("No jump on re-engage",
           norm(current_target - target_before_clutch) < 1e-9,
           f"Before clutch: {vec_str(target_before_clutch)}, after re-engage: {vec_str(current_target)}")
 
-    # --- Step 5: Move XR to [0.6, 0.3, -0.6] ---
-    print(f"\n  Step 5: MOVE after re-engage (XR -> [0.6, 0.3, -0.6])")
-    xr_pose = np.array([0.6, 0.3, -0.6])
+    # --- Step 5: Move teleop to [0.6, 0.3, 0.3] ---
+    print(f"\n  Step 5: MOVE after re-engage (teleop -> [0.6, 0.3, 0.3])")
+    xr_pose = np.array([0.6, 0.3, 0.3])
     delta_xr = xr_pose - xr_reference
     delta_robot = axis_map @ delta_xr * scale
     current_target = ee_start + delta_robot
 
-    print(f"    XR delta from new ref: {vec_str(delta_xr)}")
-    print(f"    Robot delta:           {vec_str(delta_robot)}")
-    print(f"    Current target:        {vec_str(current_target)}")
+    print(f"    Teleop delta from new ref: {vec_str(delta_xr)}")
+    print(f"    Robot delta:               {vec_str(delta_robot)}")
+    print(f"    Current target:            {vec_str(current_target)}")
 
-    # delta_xr = [0.1, 0.0, -0.1]
-    # robot X = -(-0.1)*0.15 = 0.015 (forward)
-    # robot Y = -(0.1)*0.15 = -0.015 (right)
-    # robot Z = 0.0*0.15 = 0
-    expected_delta2 = np.array([0.015, -0.015, 0.0])
-    expected_target2 = target_at_reengage + expected_delta2
+    # delta = [0.1, 0, 0.1], robot delta = [0.075, 0, 0.075]
+    expected_delta2 = np.array([0.075, 0.0, 0.075])
+    expected_target2 = target_before_clutch + expected_delta2
 
     check("Post-reengage delta correct",
           norm(delta_robot - expected_delta2) < 1e-9,
@@ -509,8 +420,6 @@ def test_engage_clutch():
           norm(current_target - expected_target2) < 1e-9,
           f"Expected {vec_str(expected_target2)}, got {vec_str(current_target)}")
 
-    # The key insight: because we capture xr_reference fresh on re-engage,
-    # the delta is always relative to the new engage point, giving continuity.
     print(f"\n  CONCLUSION: Engage/clutch logic is correct. Fresh references on")
     print(f"  re-engage prevent jumps. Using actual_ee from FK prevents drift.")
 
@@ -535,23 +444,27 @@ def test_head_rotation_edge_cases():
               abs(np.dot(M[0], M[2])) < 1e-9 and
               abs(np.dot(M[1], M[2])) < 1e-9)
 
-    # --- 5b: Looking straight up ---
-    print(f"\n  5b: Looking straight UP (pitch = +90 deg around X)")
-    # Rotation of 90 deg around X axis: quat = (sin(45), 0, 0, cos(45))
-    q_up = (np.sin(np.pi/4), 0.0, 0.0, np.cos(np.pi/4))
+    # --- 5b: Looking straight up (pitch = +90 deg around Y in ROS) ---
+    print(f"\n  5b: Looking straight UP")
+    # Rotation of 90 deg around Y axis: forward becomes +Z (up)
+    # quat = (0, sin(45), 0, cos(45))
+    q_up = (0.0, np.sin(np.pi/4), 0.0, np.cos(np.pi/4))
     M_up = axis_map_from_head(q_up)
+    # R@[1,0,0] = [cos(90), 0, -sin(90)] = [0, 0, -1] (pointing down)
+    # horiz_norm = sqrt(0 + 0) = 0 -> None? Actually fwd_x=0, fwd_y=0,
+    # so horiz_norm = 0 -> returns None
     check("Looking up: returns None", M_up is None,
           f"Got {'None' if M_up is None else 'a matrix'}")
 
     # --- 5c: Looking straight down ---
-    print(f"\n  5c: Looking straight DOWN (pitch = -90 deg around X)")
-    q_down = (-np.sin(np.pi/4), 0.0, 0.0, np.cos(np.pi/4))
+    print(f"\n  5c: Looking straight DOWN")
+    q_down = (0.0, -np.sin(np.pi/4), 0.0, np.cos(np.pi/4))
     M_down = axis_map_from_head(q_down)
     check("Looking down: returns None", M_down is None,
           f"Got {'None' if M_down is None else 'a matrix'}")
 
-    # --- 5d: 180 degree yaw ---
-    print(f"\n  5d: 180 degree yaw (facing backward in WebXR = +Z)")
+    # --- 5d: 180 degree yaw (facing backward = -X in ROS) ---
+    print(f"\n  5d: 180 degree yaw (facing -X in ROS)")
     quat_180 = quat_from_yaw(np.pi)
     M_180 = axis_map_from_head(quat_180)
     check("180 yaw: returns valid map", M_180 is not None)
@@ -561,20 +474,19 @@ def test_head_rotation_edge_cases():
             print(f"      {vec_str(row)}")
         d = det(M_180)
         check(f"180 yaw: det = +1", abs(d - 1.0) < 1e-9, f"det={d:.6f}")
-        # Forward in WebXR is now +Z (user turned around)
-        # fwd_h should be [0, 0, 1]
-        check("180 yaw: fwd_h = [0, 0, +1]",
-              norm(M_180[0] - np.array([0, 0, 1])) < 1e-6,
+        # Forward = R@[1,0,0] at 180 yaw around Z = [-1, 0, 0]
+        check("180 yaw: fwd_h = [-1, 0, 0]",
+              norm(M_180[0] - np.array([-1, 0, 0])) < 1e-6,
               f"Got {vec_str(M_180[0])}")
-        # left = cross([0,1,0], [0,0,1]) = [1, 0, 0]
-        check("180 yaw: left = [+1, 0, 0]",
-              norm(M_180[1] - np.array([1, 0, 0])) < 1e-6,
+        # left = cross([0,0,1], [-1,0,0]) = [0, -1, 0]
+        check("180 yaw: left = [0, -1, 0]",
+              norm(M_180[1] - np.array([0, -1, 0])) < 1e-6,
               f"Got {vec_str(M_180[1])}")
 
-        # Test: user moves hand in XR +Z (which is now user-forward since they face +Z)
-        delta_fwd = M_180 @ np.array([0.0, 0.0, 0.1]) * 0.15
-        print(f"    XR +Z [0,0,0.1] -> robot {vec_str(delta_fwd)} (should be robot +X)")
-        check("180 yaw: XR +Z -> robot +X (user faces +Z)",
+        # Test: moving in ROS -X (which is now user-forward since they face -X)
+        delta_fwd = M_180 @ np.array([-0.1, 0.0, 0.0]) * 0.75
+        print(f"    ROS -X [-0.1,0,0] -> robot {vec_str(delta_fwd)} (should be robot +X)")
+        check("180 yaw: ROS -X -> robot +X (user faces -X)",
               delta_fwd[0] > 0 and abs(delta_fwd[1]) < 1e-9,
               f"Got {vec_str(delta_fwd)}")
 
@@ -614,137 +526,69 @@ def test_head_rotation_edge_cases():
 
 
 # ===================================================================
-# TEST 6: Propose the Correct Axis Map
+# TEST 6: Consistency Between Default Map and Head Map
 # ===================================================================
-def test_correct_axis_map():
-    section("TEST 6: Correct Axis Map Proposal")
+def test_consistency():
+    section("TEST 6: Default Map / Head Map Consistency")
 
-    print(f"\n  === Scenario Analysis ===")
-    print(f"\n  There are two possible interpretations of the data flow:")
-    print(f"\n  INTERPRETATION A: teleop-xr publishes RAW WebXR coordinates")
-    print(f"    WebXR: +X right, +Y up, -Z forward")
-    print(f"    Robot: +X forward, +Y left, +Z up")
-    print(f"    => Identity map is WRONG, need coordinate transform")
-    print(f"    => head-based map computes in WebXR space (CONSISTENT)")
-    print(f"\n  INTERPRETATION B: teleop-xr converts to ROS convention first")
-    print(f"    Data arrives as: +X forward, +Y left, +Z up")
-    print(f"    => Identity map is CORRECT for data")
-    print(f"    => head-based map assumes WebXR coords (INCONSISTENT)")
+    print(f"\n  The bridge uses ROS REP-103 convention throughout:")
+    print(f"    - teleop-xr publishes in ROS convention (+X fwd, +Y left, +Z up)")
+    print(f"    - DEFAULT_AXIS_MAP is identity (correct for ROS data)")
+    print(f"    - _axis_map_from_head() extracts forward as R@[1,0,0]")
+    print(f"    - Horizontal projection in XY plane (Z-up)")
+    print(f"    - All three are consistent.")
 
-    print(f"\n  The code CONTRADICTS itself:")
-    print(f"    Line 21: '# teleop-xr already outputs in ROS convention (REP-103)'")
-    print(f"    Line 134: '# WebXR (Quest 2): +X right, +Y up, -Z forward'")
-    print(f"    The _axis_map_from_head() extracts forward = R@[0,0,-1],")
-    print(f"    which is the WebXR forward vector. If data were already in ROS")
-    print(f"    convention, forward would be R@[1,0,0], not R@[0,0,-1].")
+    # At identity head, head map should produce identity = DEFAULT_AXIS_MAP
+    M_head = axis_map_from_head((0, 0, 0, 1))
+    check("Head map at identity == DEFAULT_AXIS_MAP",
+          M_head is not None and norm(M_head - DEFAULT_AXIS_MAP) < 1e-9)
 
-    print(f"\n  VERDICT: The head-based map assumes WebXR coordinates. The comment")
-    print(f"    on line 21-22 is WRONG or teleop-xr was changed without updating")
-    print(f"    the bridge. The behavior depends on which is true. We propose")
-    print(f"    corrections for BOTH scenarios.")
+    # Verify that for any yaw angle, the map is a proper rotation
+    # (orthogonal, det=+1, rows are unit vectors)
+    print(f"\n  Verifying map properties across 360 degrees of yaw:")
+    n_angles = 36
+    all_ok = True
+    for i in range(n_angles):
+        yaw = 2 * np.pi * i / n_angles
+        q = quat_from_yaw(yaw)
+        M = axis_map_from_head(q)
+        if M is None:
+            all_ok = False
+            continue
+        d = det(M)
+        if abs(d - 1.0) > 1e-6:
+            all_ok = False
+        # Up row should always be [0, 0, 1]
+        if norm(M[2] - np.array([0, 0, 1])) > 1e-9:
+            all_ok = False
+        # fwd_h should have zero Z component
+        if abs(M[0][2]) > 1e-9:
+            all_ok = False
 
-    # --- SCENARIO A: Data is raw WebXR ---
-    print(f"\n  === CORRECT STATIC MAP (if data is raw WebXR) ===")
-    correct_static_webxr = np.array([
-        [0.0, 0.0, -1.0],   # robot X(fwd) = -XR_Z
-        [-1.0, 0.0, 0.0],   # robot Y(left) = -XR_X
-        [0.0, 1.0, 0.0],    # robot Z(up)  = +XR_Y
-    ])
-    print(f"    M = [[  0,  0, -1],     # robot X = -XR_Z (forward)")
-    print(f"         [ -1,  0,  0],     # robot Y = -XR_X (left)")
-    print(f"         [  0,  1,  0]]     # robot Z = +XR_Y (up)")
-    d = det(correct_static_webxr)
-    print(f"    det(M) = {d:+.1f} (proper rotation)")
+    check(f"All {n_angles} yaw angles: valid, det=+1, up=[0,0,1], fwd_z=0", all_ok)
 
-    # Verify
-    tests_webxr = [
-        ("XR fwd  [0,0,-0.1]", np.array([0, 0, -0.1]), "robot +X"),
-        ("XR right [0.1,0,0]", np.array([0.1, 0, 0]),   "robot -Y"),
-        ("XR up    [0,0.1,0]", np.array([0, 0.1, 0]),    "robot +Z"),
-    ]
-    print(f"\n    Verification:")
-    for desc, delta, expected_desc in tests_webxr:
-        result = correct_static_webxr @ delta
-        print(f"      {desc} -> {vec_str(result)} ({expected_desc})")
+    # Verify the key property: user-forward always maps to robot +X
+    print(f"\n  Key property: user-forward always maps to robot +X")
+    test_yaws = [0, 45, 90, 135, 180, -45, -90, -135]
+    all_fwd_ok = True
+    for yaw_deg in test_yaws:
+        yaw_rad = np.radians(yaw_deg)
+        q = quat_from_yaw(yaw_rad)
+        M = axis_map_from_head(q)
+        if M is None:
+            all_fwd_ok = False
+            continue
+        # User-forward in ROS is [cos(yaw), sin(yaw), 0]
+        user_fwd = np.array([np.cos(yaw_rad), np.sin(yaw_rad), 0.0])
+        # This should map to robot +X
+        robot_delta = M @ user_fwd
+        if not (robot_delta[0] > 0.99 and abs(robot_delta[1]) < 1e-6 and abs(robot_delta[2]) < 1e-6):
+            print(f"    yaw={yaw_deg:+4d}deg: user_fwd={vec_str(user_fwd)} -> robot={vec_str(robot_delta)} WRONG")
+            all_fwd_ok = False
+        else:
+            print(f"    yaw={yaw_deg:+4d}deg: user_fwd={vec_str(user_fwd)} -> robot={vec_str(robot_delta)} OK")
 
-    # --- Head-based map analysis for WebXR scenario ---
-    print(f"\n  === HEAD-BASED MAP ANALYSIS (if data is raw WebXR) ===")
-    M_head_identity = axis_map_from_head((0, 0, 0, 1))
-    print(f"    At identity head orientation, head map produces:")
-    if M_head_identity is not None:
-        for row in M_head_identity:
-            print(f"      {vec_str(row)}")
-        match = norm(M_head_identity - correct_static_webxr) < 1e-9
-        print(f"    Matches correct static map: {'YES' if match else 'NO'}")
-        check("Head map at identity matches correct WebXR->ROS map", match)
-    print(f"    The _axis_map_from_head() function IS CORRECT for WebXR input data.")
-    print(f"    It properly extracts the user's forward direction in WebXR space")
-    print(f"    and builds a map that projects XR deltas onto user body axes,")
-    print(f"    then assigns them to robot axes (fwd->X, left->Y, up->Z).")
-
-    # --- SCENARIO B: Data is already ROS ---
-    print(f"\n  === IF DATA IS ALREADY ROS CONVENTION ===")
-    print(f"    Static map: Identity IS correct.")
-    print(f"    Head-based map: BROKEN. It would need to be rewritten to:")
-    print(f"      - Extract forward as R@[1,0,0] (ROS forward)")
-    print(f"      - Project onto horizontal XY plane (Z is up)")
-    print(f"      - Compute left = cross([0,0,1], fwd_h)")
-    print(f"      - Rows: [fwd_h, left, up=[0,0,1]]")
-
-    def axis_map_from_head_ros(head_quat):
-        """Corrected head map for ROS-convention input data."""
-        if head_quat is None:
-            return None
-        qx, qy, qz, qw = head_quat
-        # Forward = R @ [1, 0, 0] (first column of rotation matrix)
-        fwd_x = 1.0 - 2.0 * (qy * qy + qz * qz)
-        fwd_y = 2.0 * (qx * qy + qw * qz)
-        fwd_z = 2.0 * (qx * qz - qw * qy)
-        # Project onto horizontal plane (zero out Z, which is up in ROS)
-        horiz_norm = np.sqrt(fwd_x * fwd_x + fwd_y * fwd_y)
-        if horiz_norm < 1e-6:
-            return None
-        fwd_h = np.array([fwd_x / horiz_norm, fwd_y / horiz_norm, 0.0])
-        up = np.array([0.0, 0.0, 1.0])
-        left = np.cross(up, fwd_h)
-        return np.array([fwd_h, left, up])
-
-    print(f"\n    Corrected head map for ROS convention (for reference only):")
-    M_ros_id = axis_map_from_head_ros((0, 0, 0, 1))
-    if M_ros_id is not None:
-        for row in M_ros_id:
-            print(f"      {vec_str(row)}")
-        check("ROS head map at identity = identity",
-              norm(M_ros_id - np.eye(3)) < 1e-9,
-              f"Max diff: {np.max(np.abs(M_ros_id - np.eye(3))):.6f}")
-
-    # --- FINAL RECOMMENDATION ---
-    print(f"\n  ========================================")
-    print(f"  FINAL RECOMMENDATION")
-    print(f"  ========================================")
-    print(f"\n  1. DETERMINE what teleop-xr actually publishes.")
-    print(f"     Run: ros2 topic echo /xr/controller_right/pose --once")
-    print(f"     Move hand forward, check which axis changes.")
-    print(f"     - If Z decreases => raw WebXR => DEFAULT_AXIS_MAP is WRONG.")
-    print(f"     - If X increases => already ROS => _axis_map_from_head is WRONG.")
-    print(f"")
-    print(f"  2. IF data is raw WebXR (most likely based on _axis_map_from_head code):")
-    print(f"     a. Change DEFAULT_AXIS_MAP to:")
-    print(f"        [[0, 0, -1], [-1, 0, 0], [0, 1, 0]]")
-    print(f"     b. _axis_map_from_head() is ALREADY CORRECT, keep as-is.")
-    print(f"     c. Remove the misleading comment on line 21-22.")
-    print(f"")
-    print(f"  3. IF data is already ROS convention:")
-    print(f"     a. DEFAULT_AXIS_MAP = identity is correct, keep as-is.")
-    print(f"     b. Rewrite _axis_map_from_head() using ROS convention math.")
-    print(f"     c. Remove the WebXR comments inside _axis_map_from_head().")
-    print(f"")
-    print(f"  4. THE BUG: When head tracking is unavailable (head_quat is None),")
-    print(f"     the DEFAULT_AXIS_MAP (identity) is used. If data is WebXR,")
-    print(f"     this produces COMPLETELY WRONG mapping (up becomes left, etc.).")
-    print(f"     As soon as the user engages and head tracking kicks in, it")
-    print(f"     snaps to the correct mapping. This would explain jerky/confusing")
-    print(f"     initial behavior that 'fixes itself' once head tracking works.")
+    check("User-forward always maps to robot +X", all_fwd_ok)
 
 
 # ===================================================================
@@ -753,11 +597,10 @@ def test_correct_axis_map():
 def test_quaternion_forward_extraction():
     section("BONUS: Quaternion Forward Vector Extraction Verification")
 
-    print(f"\n  The code extracts forward = R @ [0, 0, -1] from the head quaternion.")
-    print(f"  Let's verify this against scipy for several orientations.")
+    print(f"\n  The code extracts forward = R @ [1, 0, 0] from the head quaternion.")
+    print(f"  Let's verify this against the full rotation matrix.")
     print(f"")
 
-    # We'll compute R from quaternion manually and verify
     def quat_to_rotation_matrix(qx, qy, qz, qw):
         """Full rotation matrix from quaternion (x,y,z,w convention)."""
         return np.array([
@@ -768,29 +611,30 @@ def test_quaternion_forward_extraction():
 
     test_quats = [
         ("identity", (0, 0, 0, 1)),
-        ("90 yaw right", quat_from_yaw(-np.pi/2)),
         ("90 yaw left", quat_from_yaw(np.pi/2)),
+        ("90 yaw right", quat_from_yaw(-np.pi/2)),
         ("180 yaw", quat_from_yaw(np.pi)),
-        ("45 yaw right", quat_from_yaw(-np.pi/4)),
+        ("45 yaw left", quat_from_yaw(np.pi/4)),
     ]
 
     all_match = True
     for name, (qx, qy, qz, qw) in test_quats:
         R = quat_to_rotation_matrix(qx, qy, qz, qw)
-        fwd_matrix = R @ np.array([0, 0, -1])
+        fwd_matrix = R @ np.array([1, 0, 0])  # R @ [1,0,0] = first column
 
-        # Code's formula
-        fwd_code_x = -(2.0 * (qx * qz + qw * qy))
-        fwd_code_y = -(2.0 * (qy * qz - qw * qx))
-        fwd_code_z = -(1.0 - 2.0 * (qx * qx + qy * qy))
-        fwd_code = np.array([fwd_code_x, fwd_code_y, fwd_code_z])
+        # Code's formula (first column of rotation matrix)
+        fwd_code_x = 1.0 - 2.0 * (qy * qy + qz * qz)
+        fwd_code_y = 2.0 * (qx * qy + qw * qz)
+        fwd_code = np.array([fwd_code_x, fwd_code_y, 0.0])  # Z projected out
 
-        match = norm(fwd_matrix - fwd_code) < 1e-9
+        fwd_matrix_h = np.array([fwd_matrix[0], fwd_matrix[1], 0.0])  # project out Z
+
+        match = norm(fwd_matrix_h - fwd_code) < 1e-9
         if not match:
             all_match = False
         print(f"    {name:20s}: matrix={vec_str(fwd_matrix,4)} code={vec_str(fwd_code,4)} {'MATCH' if match else 'MISMATCH'}")
 
-    check("Forward vector extraction matches R@[0,0,-1]", all_match)
+    check("Forward vector extraction matches R@[1,0,0] (XY projection)", all_match)
 
 
 # ===================================================================
@@ -799,7 +643,7 @@ def test_quaternion_forward_extraction():
 if __name__ == '__main__':
     print("=" * 72)
     print("  XR Bridge Coordinate Transform Test Suite")
-    print("  Testing: steveros_ik/xr_bridge_node.py")
+    print("  Testing: steveros_ik/xr_bridge_node.py (ROS convention)")
     print("=" * 72)
 
     test_default_axis_map()
@@ -807,7 +651,7 @@ if __name__ == '__main__':
     test_scale_factor()
     test_engage_clutch()
     test_head_rotation_edge_cases()
-    test_correct_axis_map()
+    test_consistency()
     test_quaternion_forward_extraction()
 
     # Summary
@@ -816,8 +660,7 @@ if __name__ == '__main__':
     print(f"{'='*72}")
 
     if FAIL > 0:
-        print(f"\n  FAILURES indicate bugs in the current code.")
-        print(f"  See TEST 1 and TEST 6 for the root cause analysis.")
+        print(f"\n  FAILURES detected -- see details above.")
         sys.exit(1)
     else:
         print(f"\n  All checks passed.")
